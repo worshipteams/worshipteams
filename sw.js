@@ -1,5 +1,5 @@
 // 찬양팀 앱 오프라인 캐시 (네트워크 우선, 실패하면 저장본)
-const CACHE = 'worship-v4';
+const CACHE = 'worship-v5';
 const SHELL = ['./', './index.html', './supabase.js', './dunggeunmiso-b.woff2', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
