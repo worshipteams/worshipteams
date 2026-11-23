@@ -1,6 +1,6 @@
 // 찬양팀 앱 오프라인 캐시
 // 네트워크 우선. 인터넷이 끊기거나 GitHub 서버가 오류(5xx)를 내면 기기에 저장해 둔 앱을 대신 보여 준다.
-const CACHE = 'worship-v6';
+const CACHE = 'worship-v7';
 const SHELL = ['./', './index.html', './supabase.js', './dunggeunmiso-b.woff2', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -18,6 +18,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin || !url.pathname.startsWith(new URL(self.registration.scope).pathname)) return;
+  if (url.pathname.includes('/metronome/')) return; // 메트로놈은 자체 sw.js가 맡는다
   e.respondWith((async () => {
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 8000);
     try {
