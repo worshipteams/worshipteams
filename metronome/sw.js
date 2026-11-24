@@ -2,8 +2,8 @@
 // - 앱 화면 파일: 네트워크 우선, 끊기면 저장해 둔 사본
 // - 음성 파일(voices-v*.js)·글꼴: 저장해 둔 사본 우선(바뀔 때는 파일 이름을 바꾼다)
 // - Supabase(노래 데이터)는 여기서 다루지 않는다. 앱이 기기에 따로 저장한다.
-const CACHE = "metronome-v2";
-const SHELL = ["./", "index.html", "voices-v1.js", "../supabase.js", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
+const CACHE = "metronome-v3";
+const SHELL = ["./", "index.html", "voices-v1.js", "../supabase.js", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -304,6 +304,14 @@ textarea.inp{min-height:88px;resize:vertical;line-height:1.55}
 .badge.tmp{background:color-mix(in srgb, var(--steel) 14%, transparent);color:var(--steel)}
 .ctx-note{background:var(--accent-soft);border-radius:12px;padding:11px 13px;font-size:13px;color:var(--fg-2);display:grid;gap:8px;justify-items:start;line-height:1.55}
 .ctx-note b{color:var(--fg)}
+/* ---------- install ---------- */
+.install-bar{display:flex;align-items:center;gap:10px;margin:0 auto;max-width:1100px;width:calc(100% - 28px);padding:10px 10px 10px 14px;border-radius:14px;background:color-mix(in srgb, var(--accent) 14%, var(--surface));box-shadow:0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent)}
+.install-bar[hidden]{display:none}
+.install-bar>svg{width:22px;height:22px;color:var(--accent);flex:0 0 auto}
+.install-bar .t{flex:1;font-size:13px;line-height:1.45;color:var(--fg-2);word-break:keep-all}
+.install-bar .t b{color:var(--fg)}
+.install-bar .icon-btn{width:34px;height:34px;flex:0 0 auto}
+
 /* ---------- sharing ---------- */
 .lseg{align-self:flex-start}
 .lseg button{padding:7px 14px;font-size:14px;position:relative}
@@ -414,6 +422,12 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
     <button class="icon-btn" id="openSettings" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
   </div>
 </header>
+<div class="install-bar" id="installBar" role="region" aria-label="앱 설치 안내" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M12 8v6m-3-3 3 3 3-3"/></svg>
+  <span class="t" id="installText"></span>
+  <button class="primary sm" id="installBtn" hidden>설치</button>
+  <button class="icon-btn" id="installClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
 
 <!-- PLAY -->
 <section class="view" id="v-play">
@@ -1167,6 +1181,39 @@ function importShare(r, quiet){
   return lid;
 }
 
+/* ---------- 앱 설치 (PWA) ----------
+   안드로이드·윈도우 크롬/엣지: 브라우저가 주는 설치 창(beforeinstallprompt)을 띄운다.
+   아이폰·아이패드: 설치 창이 없으므로 Safari 공유 버튼 → 홈 화면에 추가를 안내한다. */
+const UA = navigator.userAgent || '';
+const isIOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+const inApp = /KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(UA);
+const INSTALL_KEY = 'praise-metronome.installHide';
+const Install = {evt:null};
+function installHow(){
+  if(inApp) return '카카오톡 등 앱 안 브라우저에서는 설치가 안 됩니다. 오른쪽 위 메뉴에서 "다른 브라우저로 열기"(아이폰은 Safari, 안드로이드는 Chrome)를 누른 뒤 설치해 주세요.';
+  if(isIOS) return 'Safari 아래(아이패드는 위)의 공유 버튼 → "홈 화면에 추가" → 추가. 홈 화면 아이콘으로 열면 주소창 없이 앱처럼 열리고 인터넷이 없어도 됩니다.';
+  if(Install.evt) return '설치를 누르면 홈 화면(윈도우는 시작 메뉴·바탕화면)에 아이콘이 생깁니다. 인터넷이 없어도 열립니다.';
+  return '안드로이드: Chrome 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가" · 윈도우: Edge·Chrome 주소창 오른쪽 설치 아이콘';
+}
+function renderInstallBar(){
+  const bar = $('#installBar'); if(!bar) return;
+  let hidden = isStandalone();
+  try{ const t = +localStorage.getItem(INSTALL_KEY)||0; if(Date.now()-t < 14*864e5) hidden = true; }catch(e){}
+  if(!hidden && !Install.evt && !isIOS && !inApp) hidden = true; // 설치 창을 띄울 수 없는 브라우저는 설정 화면 안내로만
+  bar.hidden = hidden; if(hidden) return;
+  $('#installBtn').hidden = !Install.evt;
+  $('#installText').innerHTML = Install.evt ? '<b>앱으로 설치</b>하면 홈 화면에서 바로 열리고 인터넷이 없어도 씁니다.'
+    : inApp ? '<b>설치하려면</b> 오른쪽 위 메뉴에서 다른 브라우저(Safari·Chrome)로 열어 주세요.'
+    : '<b>앱으로 쓰기</b>: Safari 공유 버튼 <span aria-hidden="true">⬆︎</span> → <b>홈 화면에 추가</b>';
+}
+async function doInstall(){
+  const e = Install.evt; if(!e){ toast(installHow()); return; }
+  Install.evt = null;
+  try{ e.prompt(); const r = await e.userChoice; if(r && r.outcome==='dismissed'){ try{ localStorage.setItem(INSTALL_KEY, String(Date.now())); }catch(_){} } }catch(_){}
+  renderInstallBar(); renderSettingsIfOpen();
+}
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); Install.evt = e; renderInstallBar(); renderSettingsIfOpen(); });
+window.addEventListener('appinstalled', ()=>{ Install.evt = null; try{ localStorage.setItem(INSTALL_KEY, String(Date.now())); }catch(_){} renderInstallBar(); toast('설치했습니다. 홈 화면 아이콘으로 열어 주세요.'); });
 const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
 
 
@@ -2239,7 +2286,7 @@ function renderSettings(){
     <div class="set-h">기타</div>
     <div class="set-group">
       <div class="set-row"><span>키보드·블루투스 페달<small><span class="kbd">Space</span> 시작/정지 · <span class="kbd">→</span> <span class="kbd">PgDn</span> 다음 곡 · <span class="kbd">←</span> <span class="kbd">PgUp</span> 이전 곡 · <span class="kbd">T</span> 탭 템포 · <span class="kbd">R</span> 파트 반복</small></span></div>
-      ${isStandalone() ? '' : `<div class="set-row"><span>앱으로 설치<small>아이폰: Safari 공유 버튼 → 홈 화면에 추가 · 안드로이드: Chrome 메뉴 → 앱 설치 · 윈도우: Edge·Chrome 주소창 오른쪽 설치 아이콘</small></span></div>`}
+      ${isStandalone() ? '<div class="set-row"><span>앱으로 설치됨<small>홈 화면 아이콘으로 열고 있습니다. 인터넷이 없어도 열리고, 곡은 기기에 저장됩니다.</small></span></div>' : `<div class="set-row"><span>앱으로 설치<small>${esc(installHow())}</small></span>${Install.evt?'<button class="primary sm" data-install="1">설치</button>':''}</div>`}
     </div>
     <div class="set-h">계정</div>
     <div class="set-group">${accountRows()}
@@ -2307,6 +2354,8 @@ holdRepeat($('#bpmUp'), ()=>{ const s=curSong(); if(s) setBpm(s.bpm+1); });
 $('#bpmInput').addEventListener('change', e=>{ const v=+e.target.value; if(v) setBpm(v); else renderSong(); });
 $('#bpmInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ const v=+e.target.value; if(v) setBpm(v); e.target.blur(); } });
 $('#bpmSave').addEventListener('click', saveCurBpm);
+$('#installBtn').addEventListener('click', doInstall);
+$('#installClose').addEventListener('click', ()=>{ try{ localStorage.setItem(INSTALL_KEY, String(Date.now())); }catch(_){} renderInstallBar(); });
 $('#bpmRevert').addEventListener('click', revertCurBpm);
 
 document.addEventListener('click', e=>{
@@ -2334,6 +2383,7 @@ document.addEventListener('click', e=>{
   if(d.cuechip){ const ta=$('#fForm'); const pos = ta.selectionStart ?? ta.value.length; const before=ta.value.slice(0,pos), after=ta.value.slice(pos);
     const ins = (before && !/[\s,]$/.test(before) ? ' ' : '') + `[${d.cuechip}]` + (after && !/^[\s,]/.test(after) ? ' ' : '');
     ta.value = before + ins + after; ta.focus(); const np = (before+ins).length; try{ ta.setSelectionRange(np,np); }catch(e){} renderEditorPreview(); return; }
+  if(d.install){ doInstall(); return; }
   if(d.lseg){ listSeg=d.lseg; renderLists(); if(listSeg==='shared' && Sync.uid && !Share.loading) Share.load(); return; }
   if(d.gfilter!=null){ sharedFilter = d.gfilter || null; renderShared(); return; }
   if(d.sharereload){ Share.load(); renderShared(); return; }
@@ -2431,6 +2481,7 @@ document.addEventListener('keydown', e=>{
   $('#sync').addEventListener('click', ()=>{ renderSettings(); openSheet('settingsSheet'); });
   setTimeout(connectDb, 0);
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  renderInstallBar();
 })();
 })();
 </script>
