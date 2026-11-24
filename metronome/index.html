@@ -356,6 +356,9 @@ textarea.inp{min-height:88px;resize:vertical;line-height:1.55}
 .fb-num input::-webkit-outer-spin-button,.fb-num input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .fb-num small{font-size:11px;color:var(--muted);padding:0 6px 0 2px;white-space:nowrap}
 .fb-num.rep input{width:26px}
+.fb-num.rep .loop-n{width:26px;text-align:center;font-family:var(--display);font-weight:800;color:var(--accent)}
+.fb-num.rep .loop-btn{white-space:nowrap;flex:0 0 auto;margin-left:4px;padding:3px 7px;border-radius:7px;font-size:11.5px;font-weight:700;color:var(--muted);box-shadow:0 0 0 1px var(--line)}
+.fb-num.rep .loop-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:none}
 .fb-num.rep small:first-child{padding:0 0 0 8px}
 .fb-del{width:34px;height:38px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;color:var(--muted)}
 .fb-del:hover{background:color-mix(in srgb, var(--danger) 12%, transparent);color:var(--danger)}
@@ -785,13 +788,15 @@ function parseForm(text){
       } else pending.push(c);
       return;
     }
-    const m = part.match(/^(.*?)[\s:：]*(\d{1,3})(?:\s*[x×*]\s*(\d{1,2}))?$/i);
+    // 8xn(또는 x∞): 인도자가 넘어가자고 할 때까지 그 파트를 계속 반복
+    const m = part.match(/^(.*?)[\s:：]*(\d{1,3})(?:\s*[x×*]\s*(\d{1,2}|n|∞))?$/i);
     if(!m || !m[1].trim()){ bad.push(part); return; }
-    const bars = clamp(parseInt(m[2],10),1,256); const rep = clamp(parseInt(m[3]||'1',10),1,16);
+    const loop = !!m[3] && /^(n|∞)$/i.test(m[3]);
+    const bars = clamp(parseInt(m[2],10),1,256); const rep = loop ? 1 : clamp(parseInt(m[3]||'1',10),1,16);
     const info = parseLabel(m[1]);
     lastGroup = [];
     for(let r=0;r<rep;r++){
-      const it = {...info, bars, rep: rep>1 ? (r+1)+'/'+rep : '', cues:[]};
+      const it = {...info, bars, rep: loop ? '∞' : rep>1 ? (r+1)+'/'+rep : '', loop, cues:[]};
       if(r===0 && pending.length){ pending.forEach(c=>it.cues.push({...c, bar: c.at!=null ? clamp(c.at,1,bars) : 1})); pending=[]; }
       items.push(it); lastGroup.push(it);
     }
@@ -1391,7 +1396,7 @@ async function startPlay(){
   P.mode = P.secs.length && !formOff(song.id) ? 'form' : 'free';
   P.si = P.secs.length ? clamp(P.startIdx,0,P.secs.length-1) : 0;
   P.resume = null; P.offFrom = P.mode==='free' && P.secs.length ? P.si-1 : null;
-  P.bis=0; P.b=0; P.s=0; P.freeBar=0; P.queued=null; P.cuedNext=null; P.ending=false; P.events=[];
+  P.bis=0; P.b=0; P.s=0; P.freeBar=0; P.queued=null; P.cuedNext=null; P.ending=false; P.events=[]; P.loopN=1;
   P.countTotal = clamp(song.countIn|0,0,2); P.countLeft = P.countTotal; P.countBar=0;
   P.nextT = ctx.currentTime + 0.3; P.playing = true; P.skipped = 0;
   startKeepAlive(); clock.start(); tick();
@@ -1488,8 +1493,9 @@ function scheduleStep(song, t){
     const sec = P.secs[P.si];
     if(sec){
       const left = sec.bars - P.bis;
-      const nx = P.queued!=null ? P.queued : P.si+1;
-      const has = nx < P.secs.length;
+      const looping = sec.loop && P.queued==null;          // 무한 반복 중: 다음 파트 안내·카운트를 하지 않는다
+      const nx = P.queued!=null ? P.queued : looping ? P.si : P.si+1;
+      const has = !looping && nx < P.secs.length;
       const nb = nameBeat(ts);
       const nxt = has ? P.secs[nx] : null;
       const hereCue = sec.cues.find(c=>c.k!=='meter' && c.k!=='rit' && c.bar===P.bis+1);
@@ -1533,7 +1539,8 @@ function advance(song){
   P.bis++;
   if(P.bis < P.secs[P.si].bars) return;
   P.bis=0;
-  const nx = P.queued!=null ? P.queued : P.si+1;
+  const nx = P.queued!=null ? P.queued : P.secs[P.si].loop ? P.si : P.si+1;
+  if(nx===P.si && P.secs[P.si].loop && P.queued==null) P.loopN = (P.loopN||1)+1; else P.loopN = 1;
   P.queued=null; P.cuedNext=null;
   if(nx >= P.secs.length){
     if(settings().endMode==='free'){ P.mode='free'; P.freeBar=0; P.si=P.secs.length; }
@@ -1574,7 +1581,8 @@ function queueSection(idx){
   P.queued = idx;
   const sec = P.secs[P.si];
   // name already announced for a different part: announce the new one right away (only before the counting bar)
-  if(sec && sec.bars - P.bis === 2 && P.cuedNext!==null && P.cuedNext!==idx && P.countLeft===0){
+  const late = sec && (sec.bars - P.bis === 2 ? (P.cuedNext!==null && P.cuedNext!==idx) : (sec.loop && sec.bars - P.bis === 1 && P.cuedNext!==idx));
+  if(late && P.countLeft===0){
     P.cuedNext = idx; cue(P.secs[idx], ctx.currentTime + 0.05, 60/bpmOf(songOf(P.songId, P.listId)));
   }
   renderForm(); renderNext(P.si, P.bis);
@@ -1758,8 +1766,13 @@ function renderNext(si, bis, counting){
   if(si<0){ row.innerHTML=''; return; }
   if(counting){ const sec=P.secs[si]; row.innerHTML = sec ? `<span class="arrow">첫 파트</span><b style="--sc:${scv(sec.k)}">${esc(sec.en)}</b>` : ''; return; }
   const sec = P.secs[si]; if(!sec){ row.innerHTML=''; return; }
-  const nx = P.queued!=null ? P.queued : si+1;
   const left = sec.bars - bis;
+  if(sec.loop && P.queued==null){
+    const nxs = P.secs[si+1];
+    row.innerHTML = `<span class="arrow">반복 중</span><b style="--sc:${scv(sec.k)}">${esc(sec.en)}</b><span>${P.loopN||1}번째 · 인도자 신호까지</span><button class="primary sm" data-loopnext="1">${nxs ? `다음 파트로 (${esc(nxs.ab)})` : '끝내기'}</button>`;
+    return;
+  }
+  const nx = P.queued!=null ? P.queued : si+1;
   if(nx >= P.secs.length){
     row.innerHTML = settings().endMode==='free' ? `<span class="arrow">다음</span><b>FREE</b><span>${left}마디 뒤 송폼 끝</span>` : `<span>${left===1?'이번 마디로 끝':left+'마디 뒤 끝'}</span>`;
   } else {
@@ -1785,7 +1798,7 @@ function renderForm(){
     if(it.cues.some(c=>c.k!=='meter')) cls+=' has-cue';
     const ms = it.cues.filter(c=>c.k==='meter');
     const tip = it.cues.length ? ' · ' + it.cues.map(c=>c.en+(c.all?' 전체':c.bar>1?` (${c.bar}마디)`:'')).join(', ') : '';
-    return `<button class="${cls}" data-sec="${i}" style="flex-grow:${it.bars};--sc:${scv(it.k)}" title="${esc(it.ko)} ${it.bars}마디${esc(tip)}"><b>${esc(it.ab)}</b><small class="num">${it.bars}</small>${ms.length?`<small class="mt">${esc(ms[0].en)}</small>`:''}</button>`;
+    return `<button class="${cls}" data-sec="${i}" style="flex-grow:${it.bars};--sc:${scv(it.k)}" title="${esc(it.ko)} ${it.bars}마디${esc(tip)}"><b>${esc(it.ab)}</b><small class="num">${it.bars}${it.loop?' ∞':''}</small>${ms.length?`<small class="mt">${esc(ms[0].en)}</small>`:''}</button>`;
   }).join('');
   $('#repeatBtn').disabled = !(P.playing && P.mode==='form');
   renderFollow(s);
@@ -2031,16 +2044,16 @@ function formToBlocks(text){
   pre.split(/[,\n;/→>|·]+/).map(s=>s.trim()).filter(Boolean).forEach(part=>{
     const cm = part.match(/^\u0001(\d+)\u0002$/);
     if(cm){ const c=cleanCue(raw[+cm[1]]); if(!c) return; const last=blocks[blocks.length-1]; if(last) last.cues.push(c); else pending.push(c); return; }
-    const m = part.match(/^(.*?)[\s:：]*(\d{1,3})(?:\s*[x×*]\s*(\d{1,2}))?$/i);
+    const m = part.match(/^(.*?)[\s:：]*(\d{1,3})(?:\s*[x×*]\s*(\d{1,2}|n|∞))?$/i);
     if(!m || !m[1].trim()) return;
-    const b = {key:uid(), label:cleanLabel(m[1]), bars:clamp(parseInt(m[2],10),1,256), rep:clamp(parseInt(m[3]||'1',10),1,16), cues:[]};
+    const b = {key:uid(), label:cleanLabel(m[1]), bars:clamp(parseInt(m[2],10),1,256), rep: m[3] && /^(n|∞)$/i.test(m[3]) ? 'n' : clamp(parseInt(m[3]||'1',10),1,16), cues:[]};
     // 첫 파트 앞에 쓴 큐는 첫 파트 첫 마디로 옮긴다
     if(pending.length){ pending.forEach(c=>{ const pc=parseCue(c); b.cues.push(pc && pc.k!=='meter' && pc.at==null ? c+'@1' : c); }); pending=[]; }
     blocks.push(b);
   });
   return blocks;
 }
-const blocksToForm = blocks => blocks.filter(b=>b.label).map(b=>`${b.label} ${b.bars}${b.rep>1?'x'+b.rep:''}${b.cues.map(c=>` [${c}]`).join('')}`).join(', ');
+const blocksToForm = blocks => blocks.filter(b=>b.label).map(b=>`${b.label} ${b.bars}${b.rep==='n'?'xn':b.rep>1?'x'+b.rep:''}${b.cues.map(c=>` [${c}]`).join('')}`).join(', ');
 function fbSync(){ $('#fForm').value = blocksToForm(FB); renderEditorPreview(); }
 function cueText(raw, bars){
   const c = parseCue(raw); if(!c) return {t:raw, w:'', meter:false};
@@ -2084,7 +2097,7 @@ function renderBlocks(){
         <span class="fb-handle" aria-label="끌어서 순서 바꾸기" title="끌어서 순서 바꾸기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h14M5 16h14"/></svg></span>
         <input class="inp fb-label" data-fblabel="${i}" value="${esc(b.label)}" list="fbLabels" aria-label="파트 이름" autocapitalize="characters" spellcheck="false">
         <span class="fb-num"><button data-fbbars="${i}" data-d="-1" aria-label="마디 줄이기">−</button><input class="num" data-fbbarsin="${i}" type="number" inputmode="numeric" min="1" max="256" value="${b.bars}" aria-label="마디 수"><button data-fbbars="${i}" data-d="1" aria-label="마디 늘리기">+</button><small>마디</small></span>
-        <span class="fb-num rep"><small>×</small><input class="num" data-fbrep="${i}" type="number" inputmode="numeric" min="1" max="16" value="${b.rep}" aria-label="반복 횟수"><small>번</small></span>
+        <span class="fb-num rep${b.rep==='n'?' loop':''}"><small>×</small>${b.rep==='n' ? '<b class="loop-n" title="인도자 신호까지 계속 반복">n</b>' : `<input class="num" data-fbrep="${i}" type="number" inputmode="numeric" min="1" max="16" value="${b.rep}" aria-label="반복 횟수">`}<small>번</small><button class="loop-btn" data-fbloop="${i}" aria-pressed="${b.rep==='n'}" title="인도자 신호까지 계속 반복">n번</button></span>
         <button class="fb-del" data-fbdel="${i}" aria-label="이 파트 삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
       </div>
       <div class="fb-cues">${cues}<button class="fb-cueadd" data-fbcueadd="${i}" aria-expanded="${open}">+ 큐</button></div>
@@ -2284,7 +2297,7 @@ function renderSettings(){
     </div>
     <div class="set-h">기타</div>
     <div class="set-group">
-      <div class="set-row"><span>키보드·블루투스 페달<small><span class="kbd">Space</span> 시작/정지 · <span class="kbd">→</span> <span class="kbd">PgDn</span> 다음 곡 · <span class="kbd">←</span> <span class="kbd">PgUp</span> 이전 곡 · <span class="kbd">T</span> 탭 템포 · <span class="kbd">R</span> 파트 반복 · <span class="kbd">F</span> 송폼 끄기/켜기</small></span></div>
+      <div class="set-row"><span>키보드·블루투스 페달<small><span class="kbd">Space</span> 시작/정지 · <span class="kbd">→</span> <span class="kbd">PgDn</span> 다음 곡 · <span class="kbd">←</span> <span class="kbd">PgUp</span> 이전 곡 · <span class="kbd">T</span> 탭 템포 · <span class="kbd">R</span> 파트 반복 · <span class="kbd">F</span> 송폼 끄기/켜기 · <span class="kbd">N</span> 다음 파트로(반복 끝내기)</small></span></div>
       ${isStandalone() ? '<div class="set-row"><span>앱으로 설치됨<small>홈 화면 아이콘으로 열고 있습니다. 인터넷이 없어도 열리고, 곡은 기기에 저장됩니다.</small></span></div>' : `<div class="set-row"><span>앱으로 설치<small>${esc(installHow())}</small></span>${Install.evt?'<button class="primary sm" data-install="1">설치</button>':''}</div>`}
     </div>
     ${Sync.uid ? acct : ''}`;
@@ -2387,8 +2400,10 @@ document.addEventListener('click', e=>{
     ta.value = before + ins + after; ta.focus(); const np = (before+ins).length; try{ ta.setSelectionRange(np,np); }catch(e){} renderEditorPreview(); return; }
   if(d.install){ doInstall(); return; }
   if(d.openlogin){ authMode='login'; renderSettings(); openSheet('settingsSheet'); setTimeout(()=>$('#authId')?.focus(),40); return; }
+  if(d.loopnext){ if(P.playing && P.mode==='form'){ queueSection(P.si+1); toast(P.secs[P.si+1] ? '이번 반복이 끝나면 다음 파트로 넘어갑니다' : '이번 반복이 끝나면 마칩니다'); } return; }
   if(d.fbmode){ setFormMode(d.fbmode); return; }
   if(d.chip && fbMode==='blocks'){ fbAdd(d.chip); return; }
+  if(d.fbloop!=null){ const b=FB[+d.fbloop]; if(!b) return; if(b.rep==='n') b.rep = b.repPrev||1; else { b.repPrev = b.rep; b.rep = 'n'; } renderBlocks(); fbSync(); return; }
   if(d.fbdel!=null){ FB.splice(+d.fbdel,1); fbCueOpen=-1; renderBlocks(); fbSync(); return; }
   if(d.fbbars!=null){ const b=FB[+d.fbbars]; if(!b) return; b.bars=clamp(b.bars+(+d.d),1,256); const inp=document.querySelector(`[data-fbbarsin="${d.fbbars}"]`); if(inp) inp.value=b.bars; if(fbCueOpen===+d.fbbars || b.cues.length) renderBlocks(); fbSync(); return; }
   if(d.fbcueadd!=null){ const i=+d.fbcueadd; fbCueOpen = fbCueOpen===i ? -1 : i; renderBlocks(); return; }
@@ -2455,6 +2470,7 @@ document.addEventListener('keydown', e=>{
     else if(e.key==='ArrowLeft' || e.key==='PageUp'){ e.preventDefault(); stepSong(-1); }
     else if(e.key==='t' || e.key==='T'){ tap(); }
     else if(e.key==='f' || e.key==='F'){ toggleFollow(); }
+    else if((e.key==='n' || e.key==='N') && P.playing && P.mode==='form'){ queueSection(P.si+1); }
     else if(e.key==='r' || e.key==='R'){ queueSection(P.si); }
   }
   if(e.key==='Escape') document.querySelectorAll('.scrim').forEach(s=>s.hidden=true);
