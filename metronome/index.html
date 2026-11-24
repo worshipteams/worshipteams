@@ -1968,12 +1968,14 @@ function openSongEditor(id, addToList, ctxList, temp){
     const changed = s._over || s._lov;
     note.hidden = false;
     note.innerHTML = (editCtx
-      ? `<span><b>「${lname}」 재생목록에만 저장됩니다.</b> 노래 목록의 원래 곡은 바뀌지 않고, 다른 기기에서도 이 재생목록에서는 이 설정으로 나옵니다.</span>`
+      ? `<span><b>「${lname}」 재생목록에만 저장됩니다.</b> 제목·BPM·송폼 등을 바꿔도 노래 목록의 원래 곡은 그대로이고, 다른 기기에서도 이 재생목록에서는 이 설정으로 나옵니다.</span>`
       : `<span><b>지금 연주에서 임시로만 적용됩니다.</b> 노래 목록(DB)에는 저장되지 않고, 앱을 닫으면 사라집니다. 원본을 바꾸려면 노래 목록에서 수정하세요.</span>`)
       + (changed ? '<button class="ghost" data-resetover="1">노래 목록 설정으로 되돌리기</button>' : '');
   } else { note.hidden = true; note.innerHTML=''; }
-  $('#fTitle').value=lib.title||''; $('#fArtist').value=lib.artist||'';
-  $('#fTitle').readOnly = $('#fArtist').readOnly = editTemp;
+  // 재생목록 안에서 고칠 때는 제목·아티스트도 그 재생목록에만 바꿀 수 있다(노래 목록 원본은 그대로)
+  const shown = editCtx ? s : lib;
+  $('#fTitle').value=shown.title||''; $('#fArtist').value=shown.artist||'';
+  $('#fTitle').readOnly = $('#fArtist').readOnly = editTemp && !editCtx;
   $('#fPlaysField').hidden = editTemp;
   $('#fBpm').value=s.bpm||72; $('#fKey').value=s.key||'';
   $('#fTs').innerHTML = Object.keys(TS).map(k=>`<option ${k===s.ts?'selected':''}>${k}</option>`).join('');
@@ -2160,6 +2162,12 @@ function saveSong(tempOnly){
   const perf = {bpm:clamp(+$('#fBpm').value||72,30,260), ts, key:$('#fKey').value.trim(), sub:fixSub(ts, +$('#fSub').value), countIn:clamp(+$('#fCount').value||0,0,2), form:$('#fForm').value.trim()};
   if(editTemp){
     if(P.playing && P.songId===editId) stopPlay();
+    if(editCtx){
+      // 제목을 비우면 노래 목록 제목으로 돌아간다
+      const base = S.songs[editId] || {};
+      perf.title = $('#fTitle').value.trim() || base.title || '';
+      perf.artist = $('#fArtist').value.trim();
+    }
     if(editCtx && tempOnly!==true){
       setListPerf(editCtx, editId, perf);
       closeSheet('songSheet'); scheduleRender(); toast('이 재생목록에 저장했습니다 · 노래 목록 원본은 그대로'); return;
