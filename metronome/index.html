@@ -100,6 +100,10 @@ button[disabled]{cursor:default}
 .setname{font-weight:700;font-size:18px;display:flex;align-items:center;gap:6px;letter-spacing:-.01em}
 .setname svg{width:16px;height:16px;color:var(--muted)}
 .setmeta{color:var(--muted);font-size:13px}
+.free-btn{margin-left:auto;align-self:center;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:13px;font-weight:600;
+  background:var(--surface);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
+.free-btn svg{width:15px;height:15px}
+.free-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:none}
 .strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .strip::-webkit-scrollbar{display:none}
 .chip-song{flex:0 0 auto;display:flex;gap:10px;align-items:center;padding:8px 14px 8px 8px;border-radius:12px;
@@ -360,6 +364,11 @@ textarea.inp{min-height:88px;resize:vertical;line-height:1.55}
 .fb-cue{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:700;border-radius:7px;padding:2px 3px 2px 8px;background:color-mix(in srgb, var(--c-cue) 16%, transparent);color:var(--c-cue)}
 .fb-cue.meter{background:color-mix(in srgb, var(--steel) 16%, transparent);color:var(--steel)}
 .fb-cue small{font-weight:500;opacity:.8;margin-left:3px}
+.fb-cuepos{appearance:none;-webkit-appearance:none;border:0;background:color-mix(in srgb, currentColor 14%, transparent);color:inherit;font:inherit;font-weight:500;font-size:11.5px;
+  border-radius:5px;padding:2px 16px 2px 6px;margin-left:5px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 8px) 55%,calc(100% - 4.5px) 55%;background-size:3.5px 3.5px;background-repeat:no-repeat}
+.fb-cuepos option{color:var(--fg);background:var(--surface)}
 .fb-cue button{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;color:inherit}
 .fb-cue button:hover{background:color-mix(in srgb, currentColor 18%, transparent)}
 .fb-cue button svg{width:12px;height:12px}
@@ -436,6 +445,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
       <div class="setbar">
         <button class="setname" id="pickList"><span id="setName">재생목록</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
         <span class="setmeta" id="setMeta"></span>
+        <button class="free-btn" id="freeBtn" aria-pressed="false" title="곡을 고르지 않고 BPM·박자만으로 클릭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6l3-17H6z"/><path d="M12 15 16 6"/></svg>그냥 클릭</button>
       </div>
       <div class="strip" id="strip"></div>
     </div>
@@ -791,7 +801,7 @@ function durText(song, bars){
 
 /* ---------- state + storage ---------- */
 const LS_KEY = 'praise-metronome.v1';
-const DEFAULT_SETTINGS = {click:true, flash:false, countVoice:true, guide:'en', guideCount:true, voiceGender:'m', voicePace:'auto', voiceOffset:0, ritAmount:0.6, accent:true, accVol:1, beatVol:.8, subVol:.65, clickVol:.8, voiceVol:.95, endMode:'stop', sound:'wood'};
+const DEFAULT_SETTINGS = {click:true, flash:false, countVoice:true, guide:'en', guideCount:true, voiceGender:'m', voicePace:'auto', freeClick:{bpm:100, ts:'4/4', sub:1, countIn:0}, voiceOffset:0, ritAmount:0.6, accent:true, accVol:1, beatVol:.8, subVol:.65, clickVol:.8, voiceVol:.95, endMode:'stop', sound:'wood'};
 let S = null; // {songs:{}, lists:{}, meta:{settings,cur,u}, synced:{songs:[],lists:[]}, pend:{}}
 
 function blankState(){ return {songs:{}, lists:{}, meta:{settings:{...DEFAULT_SETTINGS}, cur:{list:null, song:null}, u:0}, synced:{songs:[],lists:[]}, pend:{}, server:'metronome-1'}; }
@@ -1106,8 +1116,19 @@ function clearListPerf(listId, id){
   markDirty('lists', listId);
 }
 function clearTemp(id, listId){ delete TEMP[tkey(listId,id)]; saveTemp(); }
-const curSong = () => eff(S.meta.cur.song, S.meta.cur.list);
+// 「그냥 클릭」: 곡·재생목록 없이 BPM·박자만으로 클릭. 가짜 곡(FREE_ID)으로 다룬다
+const FREE_ID = '__free';
+const freeOn = () => !!S.meta.cur.free;
+function freeSong(){ const f = {...DEFAULT_SETTINGS.freeClick, ...(settings().freeClick||{})};
+  return {id:FREE_ID, title:'그냥 클릭', artist:'', key:'', form:'', plays:[], bpm:f.bpm, ts:f.ts, sub:f.sub, countIn:f.countIn}; }
+const songOf = (id, listId) => id===FREE_ID ? freeSong() : eff(id, listId);
+const curSong = () => freeOn() ? freeSong() : eff(S.meta.cur.song, S.meta.cur.list);
+function setFree(on){
+  if(P.playing) stopPlay();
+  S.meta.cur.free = !!on; P.startIdx = 0; markDirty('meta'); renderPlay();
+}
 function setPerf(id, patch, listId){
+  if(id===FREE_ID){ const st=settings(); st.freeClick = {...DEFAULT_SETTINGS.freeClick, ...(st.freeClick||{}), ...patch}; markDirty('meta'); return; }
   if(listId===undefined) listId = S.meta.cur.list;
   const base = listBase(id, listId); if(!base) return;
   const k = tkey(listId,id), o = {...(TEMP[k]||{})};
@@ -1331,7 +1352,8 @@ function subOf(song){ return fixSub(song.ts, song.sub); }
 
 let starting=false;
 async function startPlay(){
-  const song = curSong(); if(!song) { toast('먼저 곡을 선택하세요'); return; }
+  let song = curSong();
+  if(!song){ S.meta.cur.free = true; markDirty('meta'); renderPlay(); song = curSong(); }
   if(starting) return;
   ensureAudio();
   starting=true;
@@ -1377,7 +1399,7 @@ const clock = (()=>{
 const aheadSec = () => document.visibilityState==='hidden' ? 1.5 : 0.35;
 function tick(){
   if(!P.playing || !ctx) return;
-  const song = eff(P.songId, P.listId); if(!song){ stopPlay(); return; }
+  const song = songOf(P.songId, P.listId); if(!song){ stopPlay(); return; }
   if(ctx.state!=='running'){ try{ ctx.resume(); }catch(e){} return; }
   const now = ctx.currentTime;
   // 화면이 멈칫해서 예약 시각을 이미 지나쳤다면: 늦은 클릭을 한꺼번에 몰아 울리지 않는다.
@@ -1516,7 +1538,7 @@ function resumeForm(idx){
   formOffSong = null;
   if(P.countLeft>0){ P.mode='form'; P.si=idx; P.bis=0; P.resume=null; renderForm(); repaintNow(); return; }
   P.resume = {idx, left:2};
-  if(settings().guide!=='off'){ const sg = eff(P.songId, P.listId); cue(P.secs[idx], ctx.currentTime + 0.05, 2*60/bpmOf(sg)); }
+  if(settings().guide!=='off'){ const sg = songOf(P.songId, P.listId); cue(P.secs[idx], ctx.currentTime + 0.05, 2*60/bpmOf(sg)); }
   renderForm(); repaintNow();
 }
 function queueSection(idx){
@@ -1525,7 +1547,7 @@ function queueSection(idx){
   const sec = P.secs[P.si];
   // name already announced for a different part: announce the new one right away (only before the counting bar)
   if(sec && sec.bars - P.bis === 2 && P.cuedNext!==null && P.cuedNext!==idx && P.countLeft===0){
-    P.cuedNext = idx; cue(P.secs[idx], ctx.currentTime + 0.05, 60/bpmOf(eff(P.songId, P.listId)));
+    P.cuedNext = idx; cue(P.secs[idx], ctx.currentTime + 0.05, 60/bpmOf(songOf(P.songId, P.listId)));
   }
   renderForm(); renderNext(P.si, P.bis);
 }
@@ -1576,7 +1598,7 @@ function applyEvent(ev){
     const off = formOff(P.songId) || P.resume;
     $('#phase').textContent = off ? '송폼 끔 · 클릭만' : P.secs.length ? '송폼 끝 · 계속 클릭' : '연주 중';
     const sn=$('#secName'); sn.textContent = 'FREE'; sn.className='secname';
-    $('#secKo').textContent = off ? '인도자를 따라가세요 · 돌아갈 파트를 누르면 한 마디 세고 이어 갑니다' : P.secs.length ? '송폼 이후 자유 진행' : '송폼 없이 진행';
+    $('#secKo').textContent = off ? '인도자를 따라가세요 · 돌아갈 파트를 누르면 한 마디 세고 이어 갑니다' : P.secs.length ? '송폼 이후 자유 진행' : P.songId===FREE_ID ? '그냥 클릭' : '송폼 없이 진행';
     $('#barCount').innerHTML = `<b>${ev.freeBar+1}</b><small>마디</small>`;
     renderResumeRow(); setNow(null); renderBarsMeter(0);
   } else {
@@ -1621,14 +1643,16 @@ function renderAll(){
 }
 function renderPlay(){
   const l = curList();
-  $('#setName').textContent = l ? l.name || '이름 없는 재생목록' : (curSong() ? '노래 목록에서 고른 곡' : '재생목록 선택');
-  $('#setMeta').textContent = l ? [fmtDate(l.date), l.memo].filter(Boolean).join(' · ') : '';
+  const fr = freeOn();
+  $('#setName').textContent = fr ? '그냥 클릭' : l ? l.name || '이름 없는 재생목록' : (curSong() ? '노래 목록에서 고른 곡' : '재생목록 선택');
+  $('#setMeta').textContent = fr ? (l ? `곡을 누르면 「${l.name||'재생목록'}」으로 돌아갑니다` : '곡 없이 BPM·박자만') : l ? [fmtDate(l.date), l.memo].filter(Boolean).join(' · ') : '';
+  $('#freeBtn').setAttribute('aria-pressed', String(fr));
   const q = queueIds();
   const strip = $('#strip');
   if(!q.length){
-    strip.innerHTML = `<div class="empty" style="width:100%"><span>연주할 곡이 없습니다. 재생목록을 만들거나 노래 목록에서 곡을 골라 주세요.</span><button class="primary" data-goto="lists">재생목록으로 가기</button></div>`;
+    strip.innerHTML = fr ? '' : `<div class="empty" style="width:100%"><span>연주할 곡이 없습니다. 「그냥 클릭」으로 바로 시작할 수도 있습니다. 재생목록을 만들거나 노래 목록에서 곡을 골라 주세요.</span><button class="primary" data-goto="lists">재생목록으로 가기</button></div>`;
   } else {
-    strip.innerHTML = q.map((id,i)=>{ const s=eff(id, S.meta.cur.list); return `<button class="chip-song" data-song="${esc(id)}" aria-current="${id===S.meta.cur.song}"><b>${i+1}</b><span>${esc(s.title||'제목 없음')}</span><small class="num">${s.bpm}</small></button>`; }).join('');
+    strip.innerHTML = q.map((id,i)=>{ const s=eff(id, S.meta.cur.list); return `<button class="chip-song" data-song="${esc(id)}" aria-current="${!fr && id===S.meta.cur.song}"><b>${i+1}</b><span>${esc(s.title||'제목 없음')}</span><small class="num">${s.bpm}</small></button>`; }).join('');
     const cur = strip.querySelector('[aria-current="true"]'); if(cur && !P.playing) cur.scrollIntoView({block:'nearest',inline:'nearest'});
   }
   renderSong(); renderQuick(); renderTransport();
@@ -1636,13 +1660,14 @@ function renderPlay(){
 function renderSong(){
   const s = curSong();
   $('#songTitle').textContent = s ? (s.title || '제목 없음') : '곡을 선택하세요';
-  { const q=queueIds(), i=s?q.indexOf(s.id):-1; $('#songPos').textContent = i>=0 && q.length>1 ? `${i+1}번째 곡 · 전체 ${q.length}곡` : (s ? (curList() ? '' : '단일 곡') : ''); }
+  { const q=queueIds(), i=s?q.indexOf(s.id):-1; $('#songPos').textContent = s && s.id===FREE_ID ? '곡 없이 박자만' : i>=0 && q.length>1 ? `${i+1}번째 곡 · 전체 ${q.length}곡` : (s ? (curList() ? '' : '단일 곡') : ''); }
   $('#songArtist').textContent = s ? (s.artist||'') : '';
   const k=$('#songKey'); k.hidden = !(s && s.key); k.textContent = s && s.key ? s.key : '';
   renderBpmSave();
   const inp = $('#bpmInput'); if(document.activeElement!==inp) inp.value = s ? s.bpm : '';
   $('#bpmUnit').textContent = s && TS[s.ts]?.compound ? 'BPM · 점4분' : 'BPM';
-  ['bpmInput','bpmDown','bpmUp','editCurSong'].forEach(id=>$('#'+id).disabled = !s);
+  ['bpmInput','bpmDown','bpmUp'].forEach(id=>$('#'+id).disabled = !s);
+  $('#editCurSong').disabled = !s || s.id===FREE_ID;
   // segments
   const ts = s ? s.ts : '4/4';
   $('#segTs').innerHTML = Object.keys(TS).map(k=>`<button data-ts="${k}" aria-pressed="${k===ts}">${k}</button>`).join('');
@@ -1681,7 +1706,7 @@ function renderIdle(){
   [...$('#beats').children].forEach(d=>d.classList.remove('on'));
   if(!s){ $('#phase').textContent='대기'; $('#secName').textContent='—'; $('#secKo').textContent=''; $('#barCount').innerHTML=''; $('#nextRow').innerHTML=''; renderBarsMeter(0); setNow(null); return; }
   const {items} = parseForm(s.form);
-  $('#phase').textContent = items.length ? '대기 · 시작 파트' : '대기 · 송폼 없음';
+  $('#phase').textContent = items.length ? '대기 · 시작 파트' : s.id===FREE_ID ? '대기 · 그냥 클릭' : '대기 · 송폼 없음';
   const sn=$('#secName'); sn.className='secname';
   if(items.length){
     const i = clamp(P.startIdx,0,items.length-1), sec = items[i];
@@ -1690,7 +1715,7 @@ function renderIdle(){
     setNow(sec); renderBarsMeter(0);
     $('#nextRow').innerHTML = `<span>총 ${formBars(items)}마디 · 약 ${durText(s, formBars(items))}</span>`;
   } else {
-    sn.textContent = 'FREE'; $('#secKo').textContent='송폼을 입력하면 파트 안내가 나옵니다';
+    sn.textContent = 'FREE'; $('#secKo').textContent = s.id===FREE_ID ? '곡 없이 클릭만 나옵니다' : '송폼을 입력하면 파트 안내가 나옵니다';
     $('#barCount').innerHTML=''; $('#nextRow').innerHTML=''; setNow(null); renderBarsMeter(0);
   }
 }
@@ -1716,11 +1741,12 @@ function renderNext(si, bis, counting){
 }
 function renderForm(){
   const s = curSong(); const line=$('#formLine');
-  if(!s){ line.innerHTML=''; $('#formInfo').textContent='송폼'; return; }
+  if(!s){ line.innerHTML=''; $('#formInfo').textContent='송폼'; renderFollow(null); return; }
   const items = P.playing && P.songId===s.id ? P.secs : parseForm(s.form).items;
   if(!items.length){
-    line.innerHTML = `<div class="form-empty">송폼이 없습니다. <button class="ghost" data-editsong="1">송폼 입력</button></div>`;
-    $('#formInfo').textContent='송폼'; $('#repeatBtn').disabled=true; return;
+    line.innerHTML = s.id===FREE_ID ? `<div class="form-empty">그냥 클릭 중입니다. 파트 안내가 필요하면 위에서 곡을 고르세요.</div>`
+      : `<div class="form-empty">송폼이 없습니다. <button class="ghost" data-editsong="1">송폼 입력</button></div>`;
+    $('#formInfo').textContent='송폼'; $('#repeatBtn').disabled=true; renderFollow(s); return;
   }
   const fromList = s._lov && s._lov.includes('form') && !(s._over && s._over.includes('form'));
   $('#formInfo').innerHTML = `송폼<small>${items.length}파트 · ${formBars(items)}마디${fromList?' · 재생목록 송폼':''}</small>`;
@@ -1738,7 +1764,8 @@ function renderForm(){
 }
 function renderFollow(s){
   const id = P.playing ? P.songId : s?.id, off = formOff(id), has = !!(s && parseForm(s.form).items.length);
-  const fb = $('#followBtn'); fb.hidden = !has;
+  const fb = $('#followBtn'); fb.style.display = has ? '' : 'none'; $('#repeatBtn').style.display = has ? '' : 'none';
+  $('#formHint').style.display = has ? '' : 'none';
   fb.textContent = off ? '송폼 켜기' : '송폼 끄기'; fb.setAttribute('aria-pressed', String(!off)); fb.classList.toggle('primary', off);
   const nx = P.offFrom==null ? 0 : P.offFrom+1, ns = P.secs[clamp(nx,0,Math.max(0,P.secs.length-1))];
   $('#formHint').textContent = !off ? '블록을 누르면 그 파트부터 시작합니다. 연주 중에 누르면 다음 파트로 예약됩니다.'
@@ -1801,10 +1828,13 @@ function revertCurBpm(){
 function renderStripOnly(){ const s=curSong(); const c=document.querySelector(`.chip-song[data-song="${CSS.escape(s?.id||'')}"] small`); if(c) c.textContent=s.bpm; }
 function selectSong(id){
   if(P.playing) stopPlay();
+  S.meta.cur.free = false;
   S.meta.cur.song = id; P.startIdx = 0; markDirty('meta'); renderPlay();
 }
 function stepSong(dir){
-  const q=queueIds(), i=q.indexOf(S.meta.cur.song), j=i+dir; if(j<0||j>=q.length) return;
+  const q=queueIds(), i=q.indexOf(S.meta.cur.song);
+  if(freeOn()){ if(q.length) selectSong(q[Math.max(i,0)]); return; } // 그냥 클릭에서 이전·다음 곡을 누르면 곡으로 돌아간다
+  const j=i+dir; if(j<0||j>=q.length) return;
   selectSong(q[j]);
 }
 
@@ -1986,14 +2016,28 @@ function cueText(raw, bars){
   const where = c.at==='all' ? '파트 전체' : c.at!=null ? `${clamp(c.at,1,bars)}마디` : '마지막 마디';
   return {t:c.en, w:where, meter:c.k==='meter'};
 }
+// 넣은 큐의 위치를 그 자리에서 바꾼다: 마지막 마디(기본) / n마디 / 파트 전체(변박만)
+function cuePosSelect(raw, bars, i, j){
+  const c = parseCue(raw); if(!c) return '';
+  const cur = c.at==='all' ? 'all' : c.at!=null ? String(clamp(c.at,1,bars)) : '';
+  const opts = [['','마지막 마디'], ...(c.k==='meter' ? [['all','파트 전체']] : []), ...Array.from({length:bars},(_,k)=>[String(k+1), `${k+1}마디`])];
+  return `<select class="fb-cuepos" data-fbcuepos="${i}:${j}" aria-label="${esc(c.en)} 위치">${opts.map(([v,l])=>`<option value="${v}" ${v===cur?'selected':''}>${l}</option>`).join('')}</select>`;
+}
+document.addEventListener('change', e=>{
+  const t = e.target; if(!t.dataset || t.dataset.fbcuepos==null) return;
+  const [i,j] = t.dataset.fbcuepos.split(':').map(Number), b = FB[i]; if(!b || b.cues[j]==null) return;
+  const base = String(b.cues[j]).replace(/\s*@\s*(\d{1,3}|all|전체)\s*$/i, '');
+  b.cues[j] = base + (t.value ? '@' + t.value : '');
+  renderBlocks(); fbSync();
+});
 const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 function renderBlocks(){
   const el = $('#formBlocks');
   if(!FB.length){ el.innerHTML = `<div class="fb-empty">아래에서 파트를 눌러 송폼을 쌓아 주세요. 예: I → V1 → C → V2 → C → B → C → E</div>`; return; }
   el.innerHTML = FB.map((b,i)=>{
-    const cues = b.cues.map((c,j)=>{ const x=cueText(c,b.bars); return `<span class="fb-cue${x.meter?' meter':''}">${esc(x.t)}<small>${esc(x.w)}</small><button data-fbcuerm="${i}:${j}" aria-label="큐 빼기">${ICON_X}</button></span>`; }).join('');
+    const cues = b.cues.map((c,j)=>{ const x=cueText(c,b.bars); return `<span class="fb-cue${x.meter?' meter':''}">${esc(x.t)}${cuePosSelect(c, b.bars, i, j)}<button data-fbcuerm="${i}:${j}" aria-label="큐 빼기">${ICON_X}</button></span>`; }).join('');
     const open = fbCueOpen===i;
-    const barOpts = ['<option value="">마지막 마디</option>'].concat(Array.from({length:b.bars},(_,k)=>`<option value="${k+1}">${k+1}마디</option>`)).join('');
+    const barOpts = ['<option value="">마지막 마디 (기본)</option>'].concat(Array.from({length:b.bars},(_,k)=>`<option value="${k+1}">${k+1}마디</option>`)).join('');
     return `<div class="fb-row" data-fb="${i}" style="--sc:${scv(parseLabel(b.label||'?').k)}">
       <div class="fb-main">
         <span class="fb-handle" aria-label="끌어서 순서 바꾸기" title="끌어서 순서 바꾸기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h14M5 16h14"/></svg></span>
@@ -2147,7 +2191,7 @@ function renderPicker(){
 /* ---------- playlist chooser & settings ---------- */
 function openListChooser(){
   const lists = sortedLists();
-  $('#listChoices').innerHTML = (lists.length ? lists.map(l=>`<button class="row click" data-chooselist="${esc(l.id)}" ${l.id===S.meta.cur.list?'style="border-color:var(--accent)"':''}><span class="t"><b>${esc(l.name||'이름 없는 재생목록')}</b><small>${esc([fmtDate(l.date), l.songs.filter(id=>S.songs[id]).length+'곡', l.memo].filter(Boolean).join(' · '))}</small></span></button>`).join('') : `<p class="hint">재생목록이 없습니다.</p>`)
+  $('#listChoices').innerHTML = `<button class="row click" data-choosefree="1" ${freeOn()?'style="border-color:var(--accent)"':''}><span class="t"><b>그냥 클릭</b><small>곡 없이 BPM·박자만으로 클릭합니다</small></span></button>` + (lists.length ? lists.map(l=>`<button class="row click" data-chooselist="${esc(l.id)}" ${l.id===S.meta.cur.list?'style="border-color:var(--accent)"':''}><span class="t"><b>${esc(l.name||'이름 없는 재생목록')}</b><small>${esc([fmtDate(l.date), l.songs.filter(id=>S.songs[id]).length+'곡', l.memo].filter(Boolean).join(' · '))}</small></span></button>`).join('') : `<p class="hint">재생목록이 없습니다.</p>`)
     + `<button class="ghost" data-newlist="1" style="justify-self:start">+ 새 재생목록</button>`;
   openSheet('listSheet');
 }
@@ -2239,6 +2283,7 @@ $('#tapBtn').addEventListener('pointerdown', e=>{ e.preventDefault(); tap(); });
 $('#repeatBtn').addEventListener('click', ()=>queueSection(P.si));
 $('#followBtn').addEventListener('click', toggleFollow);
 $('#pickList').addEventListener('click', openListChooser);
+$('#freeBtn').addEventListener('click', ()=>setFree(!freeOn()));
 $('#openSettings').addEventListener('click', ()=>{ renderSettings(); openSheet('settingsSheet'); });
 $('#editCurSong').addEventListener('click', ()=>{ const s=curSong(); if(s) openSongEditor(s.id, null, S.meta.cur.list, true); });
 $('#tmpBadge').addEventListener('click', ()=>{ const s=curSong(); if(!s) return; if(P.playing) stopPlay(); clearTemp(s.id, S.meta.cur.list); renderPlay(); toast('노래 목록 원래 설정으로 돌렸습니다'); });
@@ -2273,7 +2318,8 @@ document.addEventListener('click', e=>{
   if(d.goto){ showView(d.goto); return; }
   if(d.openlist){ openListId=d.openlist; renderLists(); $('#v-lists').scrollTop=0; return; }
   if(d.newlist){ closeSheet('listSheet'); newList(); return; }
-  if(d.chooselist){ if(P.playing) stopPlay(); S.meta.cur.list=d.chooselist; S.meta.cur.song=queueIds()[0]||null; P.startIdx=0; markDirty('meta'); closeSheet('listSheet'); renderPlay(); return; }
+  if(d.choosefree){ closeSheet('listSheet'); setFree(true); return; }
+  if(d.chooselist){ if(P.playing) stopPlay(); S.meta.cur.free=false; S.meta.cur.list=d.chooselist; S.meta.cur.song=queueIds()[0]||null; P.startIdx=0; markDirty('meta'); closeSheet('listSheet'); renderPlay(); return; }
   if(d.mv!=null){ const l=S.lists[openListId]; const ids=l.songs.filter(id=>S.songs[id]); const i=+d.mv, j=i+(+d.dir); if(j<0||j>=ids.length) return; [ids[i],ids[j]]=[ids[j],ids[i]]; l.songs=ids; markDirty('lists',l.id); renderLists(); renderPlay(); return; }
   if(d.rm!=null){ const l=S.lists[openListId]; const ids=l.songs.filter(id=>S.songs[id]); const [gone]=ids.splice(+d.rm,1); l.songs=ids; clearTemp(gone, l.id); clearListPerf(l.id, gone); markDirty('lists',l.id); renderLists(); renderPlay(); return; }
   if(d.editsong){ if(d.editsong==='1'){ const c=curSong(); if(c) openSongEditor(c.id, null, S.meta.cur.list, true); } else openSongEditor(d.editsong, null, d.ctx||null, !!d.ctx); return; }
@@ -2290,7 +2336,7 @@ document.addEventListener('click', e=>{
   if(d.fbmode){ setFormMode(d.fbmode); return; }
   if(d.chip && fbMode==='blocks'){ fbAdd(d.chip); return; }
   if(d.fbdel!=null){ FB.splice(+d.fbdel,1); fbCueOpen=-1; renderBlocks(); fbSync(); return; }
-  if(d.fbbars!=null){ const b=FB[+d.fbbars]; if(!b) return; b.bars=clamp(b.bars+(+d.d),1,256); const inp=document.querySelector(`[data-fbbarsin="${d.fbbars}"]`); if(inp) inp.value=b.bars; if(fbCueOpen===+d.fbbars) renderBlocks(); else { const row=inp&&inp.closest('.fb-row'); if(row) row.querySelectorAll('.fb-cue small').forEach((sm,j)=>{ sm.textContent=cueText(b.cues[j],b.bars).w; }); } fbSync(); return; }
+  if(d.fbbars!=null){ const b=FB[+d.fbbars]; if(!b) return; b.bars=clamp(b.bars+(+d.d),1,256); const inp=document.querySelector(`[data-fbbarsin="${d.fbbars}"]`); if(inp) inp.value=b.bars; if(fbCueOpen===+d.fbbars) renderBlocks(); else { const row=inp&&inp.closest('.fb-row'); if(row) row.querySelectorAll('.fb-cuepos').forEach((sel,j)=>{ sel.outerHTML = cuePosSelect(b.cues[j], b.bars, +d.fbbars, j); }); } fbSync(); return; }
   if(d.fbcueadd!=null){ const i=+d.fbcueadd; fbCueOpen = fbCueOpen===i ? -1 : i; renderBlocks(); return; }
   if(d.fbcue && fbCueOpen>=0){ fbAddCue(fbCueOpen, d.fbcue); return; }
   if(d.fbcuecustom!=null){ const v=($('#fbCueCustom')?.value||'').trim(); if(!v){ $('#fbCueCustom')?.focus(); return; } fbAddCue(+d.fbcuecustom, v); return; }
