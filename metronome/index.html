@@ -188,21 +188,26 @@ button[disabled]{cursor:default}
 .ink-head .t{font-weight:700;font-size:15px}
 .ink-head .t small, .ink-where{color:var(--muted);font-weight:500;font-size:12.5px;margin-left:8px}
 .inkpad{display:grid;gap:8px;min-width:0}
-.ink-bar{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
-.ink-bar .sp{flex:1}
-.ink-bar button{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--fg-2);background:var(--surface-2)}
+.ink-bar{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.ink-bar button{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--fg-2);background:var(--surface-2)}
 .ink-bar button svg{width:18px;height:18px}
 .ink-bar button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent);color:var(--fg);background:var(--raise)}
 .ink-bar button.arm{background:var(--danger,#e5484d);color:#fff}
-.ink-bar .dot{width:15px;height:15px;border-radius:50%}
-.ink-bar .dot.hl{width:18px;height:10px;border-radius:3px;background:#f5c400;opacity:.7}
-.ink-wrap{position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;
-  background:var(--raise) repeating-linear-gradient(to bottom, transparent 0, transparent calc(12.5% - 1px), color-mix(in srgb, var(--fg) 7%, transparent) calc(12.5% - 1px), color-mix(in srgb, var(--fg) 7%, transparent) 12.5%);
-  box-shadow:inset 0 0 0 1px var(--line)}
-.ink-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
-.ink-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted);font-size:13px;pointer-events:none}
-.ink-wrap.off canvas{cursor:default}
-.ink-wrap.off{opacity:.7}
+.ink-bar .dot{width:15px;height:15px;border-radius:50%;box-shadow:0 0 0 1.5px rgba(255,255,255,.35)}
+.ink-bar .dot.hl{width:18px;height:10px;border-radius:3px;opacity:.75;box-shadow:none}
+.ink-wrap{position:relative;min-width:0}
+.ink-paper{position:relative;width:100%;aspect-ratio:16/10;margin:0 auto;border-radius:12px;overflow:hidden;background:#fff;touch-action:none;-webkit-user-select:none;user-select:none;
+  box-shadow:0 0 0 1px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.08)}
+.ink-paper canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.ink-live{cursor:crosshair}
+.ink-cursor{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;opacity:0;box-shadow:0 0 0 1px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.8);transition:opacity .12s}
+.ink-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#8a8f98;font-size:13px;pointer-events:none}
+.ink-wrap.off .ink-live{cursor:default}
+.ink-wrap.off .ink-paper{opacity:.75}
+.ink-sep{width:1px;height:22px;background:var(--line-2);margin:0 2px}
+.ink-size{display:flex;align-items:center;gap:6px;flex:1 1 80px;min-width:76px;font-size:11.5px;color:var(--muted);font-weight:600;padding:0 4px}
+.ink-size input{flex:1;min-width:50px;accent-color:var(--accent)}
+.ink-size-v{min-width:22px;text-align:right;color:var(--fg-2)}
 .panel{background:var(--surface);border-radius:22px;padding:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;box-shadow:0 0 0 1px var(--line)}
 .form-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .form-head .t{font-weight:700;font-size:15px}
@@ -437,17 +442,56 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 .kbd{font-family:var(--display);font-weight:700;font-size:11px;background:var(--surface-2);border-radius:5px;padding:1px 5px;color:var(--fg-2)}
 .toast{position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:12px;font-size:14px;z-index:60;font-weight:600;max-width:90%;box-shadow:var(--shadow)}
 
-@media (min-width:900px){
-  /* BPM 칸은 좁게, 필기 칸을 넓게 */
-  .play-grid{grid-template-columns:minmax(0,.76fr) minmax(0,1.24fr);align-items:start}
-  .hud{padding:16px;gap:12px}
-  .hud .dial{width:172px}
-  .hud .dial-c input{font-size:62px}
-  .hud .step{width:40px;height:40px;font-size:20px}
-  .hud .tempo{gap:10px}
-  .hud .seg-row{gap:8px 10px}
-  .hud .seg button{padding:5px 8px}
-  .play-grid .full{grid-column:1/-1}
+/* ---------- 연주 화면 배치 ----------
+   휴대폰: 한 줄로 BPM·지금 칸·스위치 → 송폼 → 필기
+   가로 화면(아이패드 가로·컴퓨터): 왼쪽 BPM·지금 칸·스위치 / 오른쪽 위 송폼, 아래 필기(남은 높이를 다 씀) — 스크롤 없이 한 화면
+   세로 아이패드: 위 BPM | 송폼, 아래 필기 전체 폭 */
+@media (min-width:700px) and (min-height:560px){
+  /* 상자들을 한 격자에 바로 놓는다(왼쪽 묶음을 풀어서) */
+  .play-grid > .full{grid-area:bar}
+  .maincol{display:contents}
+  .hud{grid-area:hud} #nowBox{grid-area:now} .quick{grid-area:tog} #formPanel{grid-area:form} #inkPanel{grid-area:ink}
+  .play-grid{max-width:1180px;min-height:0;align-content:stretch;align-items:stretch;gap:12px 12px;
+    grid-template-columns:minmax(0,.66fr) minmax(0,.3fr) minmax(0,1.04fr);
+    grid-template-rows:auto auto minmax(0,1fr) auto;
+    grid-template-areas:"bar bar bar" "hud hud form" "hud hud ink" "now tog ink"}
+  #v-play{padding-bottom:0}
+  .hud{min-height:0;overflow:hidden;padding:14px 16px;gap:10px;align-content:center;--dial:clamp(120px, calc(100dvh - 618px), 250px)}
+  .hud .dial{width:var(--dial)}
+  .hud .dial-c input{font-size:calc(var(--dial) * .36)}
+  .hud .step{width:42px;height:42px;font-size:20px}
+  .hud .tempo{gap:12px}
+  .hud .seg-row{gap:6px 10px}
+  .hud .seg button{padding:5px 8px;font-size:12.5px}
+  .hud .song-head h1{font-size:19px}
+  .now.compact{padding:10px 14px;align-self:stretch}
+  .now.compact .secname{font-size:clamp(28px, calc(100dvh * .045), 44px)}
+  .quick{grid-template-columns:1fr;gap:5px;align-content:stretch}
+  .quick .tog{padding:6px 10px;font-size:12px;border-radius:11px;gap:6px}
+  .quick .tog i{width:28px;height:16px}
+  .quick .tog i::after{width:10px;height:10px}
+  .quick .tog[aria-pressed="true"] i::after{transform:translateX(12px)}
+  #formPanel{padding:12px 14px;gap:8px}
+  #formPanel .formline{max-height:116px;overflow:auto;gap:5px;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));scrollbar-width:thin}
+  #formPanel .formline .blk{min-height:50px}
+  #formPanel #formHint{display:none}
+  #inkPanel{min-height:0;display:flex;flex-direction:column;padding:12px 14px;gap:8px}
+  #inkPanel .inkpad{flex:1;min-height:0;display:flex;flex-direction:column}
+  #inkPanel .ink-wrap{flex:1;min-height:120px;container-type:size;display:grid;place-items:center}
+  #inkPanel .ink-paper{width:min(100cqw, 160cqh)}
+  .transport{margin-top:10px}
+}
+@media (min-width:700px) and (min-height:560px) and (max-height:760px){
+  .hud .artist{display:none}
+  .now.compact .secko{display:none}
+}
+/* 세로 아이패드: 위 BPM | 송폼·지금 칸·스위치, 아래 필기 전체 폭 */
+@media (min-width:700px) and (min-height:560px) and (orientation:portrait){
+  .play-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto minmax(0,1fr);
+    grid-template-areas:"bar bar" "hud form" "hud now" "hud tog" "ink ink"}
+  .hud{--dial:clamp(140px, 20vw, 200px);overflow:visible}
+  .quick{grid-template-columns:1fr 1fr}
+  #formPanel .formline{max-height:none}
 }
 @media (max-width:640px){ .brand span{display:none} .tabs{margin-inline:0} }
 @media (max-width:420px){
@@ -530,25 +574,23 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
         <div class="bars" id="barsMeter"></div>
         <div class="next" id="nextRow"></div>
       </div>
-    </div>
-    <div class="side">
-      <div class="panel ink-panel" id="inkPanel">
-        <div class="ink-head"><span class="t">필기<small id="inkWhere"></small></span><button class="ghost sm" id="inkReset" hidden>노래 목록 필기로 되돌리기</button></div>
-        <div id="playInk"></div>
-      </div>
-      <div class="panel">
-        <div class="form-head">
-          <span class="t" id="formInfo">송폼</span>
-          <span style="display:flex;gap:6px">
-            <button class="ghost" id="followBtn" aria-pressed="true">송폼 끄기</button>
-            <button class="ghost" id="repeatBtn" disabled>이 파트 한 번 더</button>
-            <button class="ghost" id="editCurSong">곡 편집</button>
-          </span>
-        </div>
-        <div class="formline" id="formLine"></div>
-        <p class="hint" id="formHint">블록을 누르면 그 파트부터 시작합니다. 연주 중에 누르면 다음 파트로 예약됩니다.</p>
-      </div>
       <div class="quick" id="quick"></div>
+    </div>
+    <div class="panel form-panel" id="formPanel">
+      <div class="form-head">
+        <span class="t" id="formInfo">송폼</span>
+        <span style="display:flex;gap:6px">
+          <button class="ghost" id="followBtn" aria-pressed="true">송폼 끄기</button>
+          <button class="ghost" id="repeatBtn" disabled>이 파트 한 번 더</button>
+          <button class="ghost" id="editCurSong">곡 편집</button>
+        </span>
+      </div>
+      <div class="formline" id="formLine"></div>
+      <p class="hint" id="formHint">블록을 누르면 그 파트부터 시작합니다. 연주 중에 누르면 다음 파트로 예약됩니다.</p>
+    </div>
+    <div class="panel ink-panel" id="inkPanel">
+      <div class="ink-head"><span class="t">필기<small id="inkWhere"></small></span><button class="ghost sm" id="inkReset" hidden>노래 목록 필기로 되돌리기</button></div>
+      <div id="playInk"></div>
     </div>
   </div>
 
@@ -2313,49 +2355,74 @@ function decStroke(a){
 }
 const inkDoc = strokes => ({v:1, s:strokes.map(encStroke)});
 const inkSize = doc => JSON.stringify(doc).length;
-function inkColor(c){
-  if(c===0) return getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111';
-  return ['','#e5484d','#3e63dd','#f5c400'][c] || '#111';
-}
+// 색: 0~2·7 펜(검정·빨강·파랑·초록), 3~6 형광펜(노랑·초록·분홍·하늘). 종이는 늘 흰색이라 색도 고정
+// (예전 필기와 맞도록 번호는 그대로 두고 새 색은 뒤에 붙인다)
+const INK_PAL = ['#16181d','#e5484d','#3e63dd','#f5c400','#2fd47a','#ff6fb1','#4cc3ff','#1f9d55'];
+function inkColor(c){ return INK_PAL[c] || INK_PAL[0]; }
+// 굵기(w): 1 = 예전 펜(2.4), 3 = 예전 형광펜(16), 10~99 = 펜 w/10, 100 이상 = 형광펜 w-100 (좌표 1000×625 기준)
+const inkIsHl = st => st.w===3 || st.w>=100;
+const inkWidth = st => st.w===1 ? 2.4 : st.w===3 ? 16 : st.w>=100 ? st.w-100 : st.w/10;
+const INK_RANGE = {pen:[1,8,0.2], hl:[6,40,1], erase:[4,70,1]};
+const INK_TOOL = (()=>{ let t={}; try{ t=JSON.parse(localStorage.getItem('metronome-inktool')||'{}'); }catch(e){}
+  return {k:['pen','hl','erase'].includes(t.k)?t.k:'pen', c:t.c??0, hc:t.hc??3, size:{pen:t.size?.pen??2.4, hl:t.size?.hl??16, erase:t.size?.erase??18}}; })();
+const saveInkTool = ()=>{ try{ localStorage.setItem('metronome-inktool', JSON.stringify(INK_TOOL)); }catch(e){} };
+const INK_PADS = new Set();
 const penSeen = () => { try{ return localStorage.getItem('metronome-pen')==='1'; }catch(e){ return false; } };
-const ICON_PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 const ICON_ERASE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4-4L14 6l7 7-8 8z"/><path d="M22 21H7"/></svg>';
 const ICON_UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+// 획을 고르게(점 사이를 gap 이하로) 채운다: 지우개가 빨리 지나가도 정확히 끊기게
+function inkDensify(p, gap){
+  const o = [p[0],p[1],p[2]];
+  for(let i=3;i<p.length;i+=3){
+    const x0=p[i-3], y0=p[i-2], q0=p[i-1], x=p[i], y=p[i+1], q=p[i+2], d=Math.hypot(x-x0,y-y0), n=Math.floor(d/gap);
+    for(let s=1;s<n;s++){ const t=s/n; o.push(x0+(x-x0)*t, y0+(y-y0)*t, q0+(q-q0)*t); }
+    o.push(x,y,q);
+  }
+  return o.map(v=>Math.round(v));
+}
+function inkBox(st){ const p=st.pts; let a=1e9,b=1e9,c=-1e9,d=-1e9; for(let i=0;i<p.length;i+=3){ if(p[i]<a)a=p[i]; if(p[i]>c)c=p[i]; if(p[i+1]<b)b=p[i+1]; if(p[i+1]>d)d=p[i+1]; } const h=inkWidth(st)/2; return st.bb=[a-h,b-h,c+h,d+h]; }
 class InkPad{
   constructor(root, onChange){
-    this.root = root; this.onChange = onChange; this.strokes = []; this.hist = []; this.tool = {k:'pen', c:0};
-    this.off = false; this.cur = null;
+    this.root = root; this.onChange = onChange; this.strokes = []; this.hist = []; this.off = false; this.cur = null; this.eq = []; this.raf = 0;
     root.classList.add('inkpad');
+    const pen = (c,l)=>`<button data-ink="pen" data-c="${c}" title="${l} 펜" aria-label="${l} 펜"><i class="dot" style="background:${INK_PAL[c]}"></i></button>`;
+    const hl = (c,l)=>`<button data-ink="hl" data-c="${c}" title="${l} 형광펜" aria-label="${l} 형광펜"><i class="dot hl" style="background:${INK_PAL[c]}"></i></button>`;
     root.innerHTML = `<div class="ink-bar">
-        <button data-ink="pen" data-c="0" title="펜(검정)" aria-label="검정 펜"><i class="dot" style="background:var(--fg)"></i></button>
-        <button data-ink="pen" data-c="1" title="빨강" aria-label="빨강 펜"><i class="dot" style="background:#e5484d"></i></button>
-        <button data-ink="pen" data-c="2" title="파랑" aria-label="파랑 펜"><i class="dot" style="background:#3e63dd"></i></button>
-        <button data-ink="hl" data-c="3" title="형광펜" aria-label="형광펜"><i class="dot hl"></i></button>
-        <button data-ink="erase" title="지우개(닿은 획 지우기)" aria-label="지우개">${ICON_ERASE}</button>
-        <span class="sp"></span>
+        ${pen(0,'검정')}${pen(1,'빨강')}${pen(2,'파랑')}${pen(7,'초록')}<i class="ink-sep"></i>
+        ${hl(3,'노랑')}${hl(4,'초록')}${hl(5,'분홍')}${hl(6,'하늘')}<i class="ink-sep"></i>
+        <button data-ink="erase" title="지우개" aria-label="지우개">${ICON_ERASE}</button>
+        <label class="ink-size" title="굵기·크기"><span class="ink-size-l"></span><input type="range" aria-label="굵기"><span class="ink-size-v num"></span></label>
         <button data-ink="undo" title="되돌리기" aria-label="되돌리기">${ICON_UNDO}</button>
         <button data-ink="clear" title="전체 지우기" aria-label="전체 지우기">${ICON_TRASH}</button>
       </div>
-      <div class="ink-wrap"><canvas></canvas><div class="ink-empty"></div></div>`;
-    this.wrap = root.querySelector('.ink-wrap'); this.cv = root.querySelector('canvas'); this.ctx = this.cv.getContext('2d');
-    this.empty = root.querySelector('.ink-empty');
+      <div class="ink-wrap"><div class="ink-paper"><canvas class="ink-base"></canvas><canvas class="ink-live"></canvas><div class="ink-cursor"></div><div class="ink-empty"></div></div></div>`;
+    this.wrap = root.querySelector('.ink-wrap'); this.paper = root.querySelector('.ink-paper');
+    this.cv = root.querySelector('.ink-base'); this.ctx = this.cv.getContext('2d');
+    this.lv = root.querySelector('.ink-live'); this.lctx = this.lv.getContext('2d');
+    this.cursor = root.querySelector('.ink-cursor'); this.empty = root.querySelector('.ink-empty');
+    this.range = root.querySelector('.ink-size input');
     root.querySelector('.ink-bar').addEventListener('click', e=>this.onBar(e));
-    this.paintBar();
-    const cv = this.cv;
-    cv.addEventListener('pointerdown', e=>this.down(e));
-    cv.addEventListener('pointermove', e=>this.move(e));
-    ['pointerup','pointercancel','lostpointercapture'].forEach(t=>cv.addEventListener(t, e=>this.up(e)));
-    // 펜으로 쓸 때 화면이 따라 움직이지 않게
-    cv.addEventListener('touchstart', e=>{ if(!this.off && (!penSeen() || [...e.touches].some(t=>t.touchType==='stylus'))) e.preventDefault(); }, {passive:false});
-    if('ResizeObserver' in window) new ResizeObserver(()=>this.fit()).observe(this.wrap); else window.addEventListener('resize', ()=>this.fit());
-    this.fit();
+    this.range.addEventListener('input', ()=>{ INK_TOOL.size[INK_TOOL.k] = +this.range.value; saveInkTool(); INK_PADS.forEach(p=>p.paintBar()); });
+    const el = this.lv;   // 위에 덮인 캔버스가 입력을 받는다
+    el.addEventListener('pointerdown', e=>this.down(e));
+    el.addEventListener('pointermove', e=>this.move(e));
+    ['pointerup','pointercancel'].forEach(t=>el.addEventListener(t, e=>this.up(e)));
+    el.addEventListener('pointerleave', ()=>{ if(!this.cur) this.cursor.style.opacity = 0; });
+    el.addEventListener('touchstart', e=>{ if(!this.off && (!penSeen() || [...e.touches].some(t=>t.touchType==='stylus'))) e.preventDefault(); }, {passive:false});
+    if('ResizeObserver' in window) new ResizeObserver(()=>this.fit()).observe(this.paper); else window.addEventListener('resize', ()=>this.fit());
+    INK_PADS.add(this); this.paintBar(); this.fit();
   }
   paintBar(){
+    const t = INK_TOOL;
     this.root.querySelectorAll('.ink-bar [data-ink]').forEach(b=>{
       const k=b.dataset.ink; if(k==='undo'||k==='clear') return;
-      b.setAttribute('aria-pressed', String(k===this.tool.k && (k==='erase' || +b.dataset.c===this.tool.c)));
+      b.setAttribute('aria-pressed', String(k===t.k && (k==='erase' || +b.dataset.c===(k==='hl'?t.hc:t.c))));
     });
+    const [lo,hi,st] = INK_RANGE[t.k]; this.range.min=lo; this.range.max=hi; this.range.step=st; this.range.value=t.size[t.k];
+    this.root.querySelector('.ink-size-l').textContent = t.k==='erase' ? '지우개' : t.k==='hl' ? '형광' : '굵기';
+    this.root.querySelector('.ink-size-v').textContent = t.k==='pen' ? (+t.size.pen).toFixed(1) : Math.round(t.size[t.k]);
+    this.cursorSize();
   }
   onBar(e){
     const b = e.target.closest('[data-ink]'); if(!b || this.off) return;
@@ -2365,108 +2432,154 @@ class InkPad{
       if(!this.strokes.length) return;
       if(!b.dataset.arm){ b.dataset.arm='1'; b.classList.add('arm'); toast('한 번 더 누르면 필기를 모두 지웁니다'); setTimeout(()=>{ b.dataset.arm=''; b.classList.remove('arm'); },3000); return; }
       b.dataset.arm=''; b.classList.remove('arm');
-      this.hist.push({t:'set', prev:this.strokes}); this.strokes=[]; this.render(); this.changed(); return;
+      this.hist.push({prev:this.strokes}); this.strokes=[]; this.render(); this.changed(); return;
     }
-    this.tool = {k, c: k==='erase' ? this.tool.c : +b.dataset.c}; this.paintBar();
+    INK_TOOL.k = k; if(k==='pen') INK_TOOL.c = +b.dataset.c; if(k==='hl') INK_TOOL.hc = +b.dataset.c;
+    saveInkTool(); INK_PADS.forEach(p=>p.paintBar());
   }
-  setOff(msg){ this.off = !!msg; this.wrap.classList.toggle('off', this.off); if(msg){ this.strokes=[]; this.hist=[]; this.render(); this.empty.textContent = msg; this.empty.hidden=false; } }
+  setOff(msg){ this.off = !!msg; this.wrap.classList.toggle('off', this.off); this.strokes=[]; this.hist=[]; this.render(); this.empty.textContent = msg||''; this.empty.hidden=!msg; }
   load(doc, emptyMsg){
     this.off = false; this.wrap.classList.remove('off');
     this.strokes = doc && doc.s ? doc.s.map(decStroke) : []; this.hist = []; this.cur = null; this.emptyMsg = emptyMsg || '';
     this.render();
   }
   doc(){ return inkDoc(this.strokes); }
+  scale(){ return this.cv.width/INK_W; }
   fit(){
-    const w = this.wrap.clientWidth; if(!w) return;
-    const dpr = Math.min(3, window.devicePixelRatio||1), h = Math.round(w*INK_H/INK_W);
-    if(this.cv.width !== Math.round(w*dpr) || this.cv.height !== Math.round(h*dpr)){ this.cv.width = Math.round(w*dpr); this.cv.height = Math.round(h*dpr); this.render(); }
+    const w = this.paper.clientWidth, h = this.paper.clientHeight; if(!w || !h) return;
+    const dpr = Math.min(3, window.devicePixelRatio||1), W = Math.round(w*dpr), H = Math.round(h*dpr);
+    if(this.cv.width !== W || this.cv.height !== H){ this.cv.width = this.lv.width = W; this.cv.height = this.lv.height = H; this.render(); }
+    this.cursorSize();
   }
-  pt(e){ const r=this.cv.getBoundingClientRect(); return [ (e.clientX-r.left)/r.width*INK_W, (e.clientY-r.top)/r.height*INK_H, e.pointerType==='pen' ? clamp((e.pressure||0.5)*90,4,90) : 45 ]; }
+  cursorSize(){
+    const css = this.paper.clientWidth/INK_W, t = INK_TOOL;
+    const d = t.k==='erase' ? t.size.erase*2*css : Math.max(4, t.size[t.k]*css);
+    this.cursor.style.width = this.cursor.style.height = d+'px';
+    this.cursor.classList.toggle('erase', t.k==='erase');
+  }
+  pt(e){ const r=this.lv.getBoundingClientRect(); return [ (e.clientX-r.left)/r.width*INK_W, (e.clientY-r.top)/r.height*INK_H, e.pointerType==='pen' ? clamp((e.pressure||0.5)*90,4,90) : 45 ]; }
+  showCursor(e){
+    if(INK_TOOL.k!=='erase' || this.off){ this.cursor.style.opacity = 0; return; }
+    const r = this.lv.getBoundingClientRect();
+    this.cursor.style.transform = `translate(${e.clientX-r.left}px, ${e.clientY-r.top}px) translate(-50%,-50%)`; this.cursor.style.opacity = 1;
+  }
   down(e){
     if(this.off || e.button>0) return;
     if(e.pointerType==='pen'){ try{ localStorage.setItem('metronome-pen','1'); }catch(_){} }
     else if(e.pointerType==='touch' && penSeen()) return;   // 펜을 쓰는 기기에서는 손바닥·손가락은 무시
-    e.preventDefault(); try{ this.cv.setPointerCapture(e.pointerId); }catch(_){}
-    const [x,y,p] = this.pt(e);
-    if(this.tool.k==='erase'){ this.cur = {erase:true, id:e.pointerId, gone:[]}; this.eraseAt(x,y); return; }
-    this.cur = {id:e.pointerId, st:{c:this.tool.c, w:this.tool.k==='hl'?3:1, pts:[x,y,p]}};
+    e.preventDefault(); try{ this.lv.setPointerCapture(e.pointerId); }catch(_){}
+    const [x,y,p] = this.pt(e), t = INK_TOOL;
+    if(t.k==='erase'){ this.cur = {erase:true, id:e.pointerId, prev:this.strokes, hit:false, last:[x,y]}; this.queueErase(x,y); this.showCursor(e); return; }
+    const w = t.k==='hl' ? 100 + Math.round(t.size.hl) : Math.round(t.size.pen*10);
+    this.cur = {id:e.pointerId, st:{c: t.k==='hl' ? t.hc : t.c, w, pts:[x,y,p]}};
+    this.drawLive();
   }
   move(e){
+    this.showCursor(e);
     const c = this.cur; if(!c || c.id!==e.pointerId) return;
     e.preventDefault();
-    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
     for(const ev of (evs.length ? evs : [e])){
       const [x,y,p] = this.pt(ev);
-      if(c.erase){ this.eraseAt(x,y); continue; }
+      if(c.erase){
+        // 지우개 길을 촘촘히 채워 빨리 움직여도 빈 곳 없이 지운다
+        const [lx,ly] = c.last, r = INK_TOOL.size.erase, d = Math.hypot(x-lx,y-ly), n = Math.ceil(d/(r*0.4));
+        for(let s=1;s<=n;s++) this.queueErase(lx+(x-lx)*s/n, ly+(y-ly)*s/n);
+        c.last = [x,y]; continue;
+      }
       const q = c.st.pts, n = q.length;
-      if(Math.hypot(x-q[n-3], y-q[n-2]) < 1.6) continue;
+      if(Math.hypot(x-q[n-3], y-q[n-2]) < 1.2) continue;
       q.push(x,y,p);
-      this.drawSeg(c.st, q.length/3-1);
     }
+    if(!c.erase) this.drawLive();
   }
   up(e){
     const c = this.cur; if(!c || (e.pointerId!=null && c.id!==e.pointerId)) return;
     this.cur = null;
-    if(c.erase){ if(c.gone.length){ this.hist.push({t:'set', prev:c.prev}); this.changed(); } return; }
-    const st = c.st;
-    st.pts = st.pts.map(v=>Math.round(v));
-    this.strokes.push(st);
-    if(inkSize(this.doc()) > INK_MAX){ this.strokes.pop(); this.render(); toast('필기 저장 공간이 가득 찼습니다. 일부를 지우고 써 주세요'); return; }
-    this.hist.push({t:'add'}); this.render(); this.changed();
-  }
-  eraseAt(x,y){
-    const r = 14, keep = [];
-    let hit = false;
-    for(const st of this.strokes){
-      const p = st.pts; let on = false;
-      for(let i=0;i<p.length;i+=3){ if(Math.abs(p[i]-x)<r && Math.abs(p[i+1]-y)<r){ on=true; break; } }
-      if(on) hit = true; else keep.push(st);
+    if(c.erase){
+      this.flushErase(); if(e.pointerType!=='mouse') this.cursor.style.opacity = 0;
+      if(c.hit){ this.hist.push({prev:c.prev}); this.changed(); }
+      return;
     }
-    if(hit){ if(!this.cur.prev) this.cur.prev = this.strokes; this.cur.gone.push(1); this.strokes = keep; this.render(); }
+    const st = c.st;
+    st.pts = inkDensify(st.pts, 4);
+    this.strokes.push(st);
+    if(inkSize(this.doc()) > INK_MAX){ this.strokes.pop(); this.clearLive(); toast('필기 저장 공간이 가득 찼습니다. 일부를 지우고 써 주세요'); return; }
+    this.hist.push({add:true});
+    this.clearLive(); this.drawStroke(this.ctx, st, this.scale()); this.empty.hidden = true;
+    this.changed();
+  }
+  // 지우개: 닿은 부분만 잘라 내고 나머지는 남긴다. 화면은 한 프레임에 한 번만 다시 그린다
+  queueErase(x,y){ this.eq.push(x,y); if(!this.raf) this.raf = requestAnimationFrame(()=>{ this.raf = 0; this.flushErase(); }); }
+  flushErase(){
+    if(this.raf){ cancelAnimationFrame(this.raf); this.raf = 0; }
+    const q = this.eq; if(!q.length) return; this.eq = [];
+    const r = INK_TOOL.size.erase, r2 = r*r;
+    let bx0=1e9, by0=1e9, bx1=-1e9, by1=-1e9;
+    for(let i=0;i<q.length;i+=2){ bx0=Math.min(bx0,q[i]); bx1=Math.max(bx1,q[i]); by0=Math.min(by0,q[i+1]); by1=Math.max(by1,q[i+1]); }
+    const out = []; let any = false; const dirty = [1e9,1e9,-1e9,-1e9];
+    for(const st of this.strokes){
+      const bb = st.bb || inkBox(st);
+      if(bb[2] < bx0-r || bb[0] > bx1+r || bb[3] < by0-r || bb[1] > by1+r){ out.push(st); continue; }
+      const p = st.pts, rr = r + inkWidth(st)/2*0.5, rr2 = rr*rr; let run = [], hit = false; const pieces = [];
+      for(let i=0;i<p.length;i+=3){
+        const x=p[i], y=p[i+1]; let inside = false;
+        for(let j=0;j<q.length;j+=2){ const dx=x-q[j], dy=y-q[j+1]; if(dx*dx+dy*dy<=rr2){ inside=true; break; } }
+        if(inside){ hit = true; if(run.length>=6) pieces.push(run); run = []; } else run.push(p[i],p[i+1],p[i+2]);
+      }
+      if(!hit){ out.push(st); continue; }
+      any = true; if(run.length>=6) pieces.push(run);
+      dirty[0]=Math.min(dirty[0],bb[0]); dirty[1]=Math.min(dirty[1],bb[1]); dirty[2]=Math.max(dirty[2],bb[2]); dirty[3]=Math.max(dirty[3],bb[3]);
+      pieces.forEach(pts=>out.push({c:st.c, w:st.w, pts}));
+    }
+    if(any){ this.strokes = out; if(this.cur && this.cur.erase) this.cur.hit = true; this.renderRegion(dirty); }
+  }
+  // 바뀐 곳만 지우고 그 근처 획만 다시 그린다(지우개가 부드럽게 움직이도록)
+  renderRegion(r){
+    const k = this.scale(), ctx = this.ctx;
+    const x = Math.floor(r[0]*k)-2, y = Math.floor(r[1]*k)-2, w = Math.ceil((r[2]-r[0])*k)+4, h = Math.ceil((r[3]-r[1])*k)+4;
+    ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip(); ctx.clearRect(x,y,w,h);
+    for(const st of this.strokes){ const bb = st.bb || inkBox(st); if(bb[2] < r[0] || bb[0] > r[2] || bb[3] < r[1] || bb[1] > r[3]) continue; this.drawStroke(ctx, st, k); }
+    ctx.restore();
+    if(!this.off) this.empty.hidden = this.strokes.length>0 || !this.emptyMsg;
   }
   undo(){
     const h = this.hist.pop(); if(!h) return;
-    if(h.t==='add') this.strokes.pop(); else this.strokes = h.prev;
+    if(h.add) this.strokes.pop(); else this.strokes = h.prev;
     this.render(); this.changed();
   }
-  changed(){ this.empty.hidden = this.strokes.length>0; if(this.onChange) this.onChange(this.doc()); }
+  changed(){ if(!this.off){ this.empty.hidden = this.strokes.length>0 || !this.emptyMsg; } if(this.onChange) this.onChange(this.doc()); }
   render(){
-    const ctx = this.ctx, W = this.cv.width, H = this.cv.height; if(!W) return;
-    ctx.clearRect(0,0,W,H);
-    const k = W/INK_W;
-    for(const st of this.strokes) this.drawStroke(st, k);
+    const W = this.cv.width, H = this.cv.height; if(!W) return;
+    this.ctx.clearRect(0,0,W,H);
+    const k = this.scale();
+    for(const st of this.strokes) this.drawStroke(this.ctx, st, k);
     if(this.off) this.empty.hidden = false;
     else { this.empty.textContent = this.emptyMsg || ''; this.empty.hidden = this.strokes.length>0 || !this.emptyMsg; }
   }
-  style(st, k){
-    const ctx = this.ctx; ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.strokeStyle = ctx.fillStyle = inkColor(st.c);
-    ctx.globalAlpha = st.w===3 ? .35 : 1;
-    return st.w===3 ? 16*k : 2.4*k;
-  }
-  drawStroke(st, k){
-    const ctx = this.ctx, p = st.pts, n = p.length/3, base = this.style(st, k);
-    const wd = i => st.w===3 ? base : base*(0.35+0.95*p[i*3+2]/90);
+  drawStroke(ctx, st, k){
+    const p = st.pts, n = p.length/3, hl = inkIsHl(st), base = inkWidth(st)*k;
+    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle = ctx.fillStyle = inkColor(st.c); ctx.globalAlpha = hl ? .38 : 1;
+    const wd = i => hl ? base : base*(0.35+0.95*p[i*3+2]/90);
     if(n===1){ ctx.beginPath(); ctx.arc(p[0]*k, p[1]*k, wd(0)/2, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=1; return; }
-    if(st.w===3){ // 형광펜은 한 번에 그려 겹친 곳이 진해지지 않게
+    if(hl){ // 형광펜은 한 번에 그려 겹친 곳이 진해지지 않게
       ctx.lineWidth = base; ctx.beginPath(); ctx.moveTo(p[0]*k,p[1]*k); for(let i=1;i<n;i++) ctx.lineTo(p[i*3]*k,p[i*3+1]*k); ctx.stroke(); ctx.globalAlpha=1; return;
     }
-    let mx=p[0], my=p[1];
+    // 굵기가 같은 구간은 한 번에 그린다(필압 굵기는 0.25px 단위로 묶음)
+    let mx=p[0], my=p[1], cw=-1;
+    ctx.beginPath(); ctx.moveTo(mx*k,my*k);
     for(let i=1;i<n;i++){
+      const w = Math.max(0.5, Math.round(wd(i)*4)/4);
+      if(w!==cw){ if(cw>0){ ctx.lineWidth=cw; ctx.stroke(); ctx.beginPath(); ctx.moveTo(mx*k,my*k); } cw=w; }
       const px=p[(i-1)*3], py=p[(i-1)*3+1], x=p[i*3], y=p[i*3+1], nx=(px+x)/2, ny=(py+y)/2;
-      ctx.lineWidth = wd(i); ctx.beginPath(); ctx.moveTo(mx*k,my*k); ctx.quadraticCurveTo(px*k,py*k,nx*k,ny*k); ctx.stroke(); mx=nx; my=ny;
+      ctx.quadraticCurveTo(px*k,py*k,nx*k,ny*k); mx=nx; my=ny;
     }
-    ctx.lineWidth = wd(n-1); ctx.beginPath(); ctx.moveTo(mx*k,my*k); ctx.lineTo(p[(n-1)*3]*k,p[(n-1)*3+1]*k); ctx.stroke();
+    ctx.lineTo(p[(n-1)*3]*k,p[(n-1)*3+1]*k); ctx.lineWidth = cw>0 ? cw : wd(n-1); ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  drawSeg(st, i){
-    const k = this.cv.width/INK_W, p = st.pts, ctx = this.ctx;
-    if(st.w===3){ this.render(); this.drawStroke(st, k); return; }
-    const base = this.style(st, k);
-    const x0=p[(i-1)*3], y0=p[(i-1)*3+1], x1=p[i*3], y1=p[i*3+1];
-    ctx.lineWidth = base*(0.35+0.95*p[i*3+2]/90); ctx.beginPath(); ctx.moveTo(x0*k,y0*k); ctx.lineTo(x1*k,y1*k); ctx.stroke();
-    this.empty.hidden = true;
-  }
+  // 쓰는 중인 획은 위 캔버스에만 그린다(아래 필기 전체를 다시 그리지 않아 빠름)
+  drawLive(){ const c=this.cur; if(!c || c.erase) return; this.clearLive(); this.drawStroke(this.lctx, c.st, this.scale()); this.empty.hidden = true; }
+  clearLive(){ this.lctx.clearRect(0,0,this.lv.width,this.lv.height); }
 }
 // 필기 저장(빈 필기: 재생목록 쪽은 빈 채로 남겨 노래 목록 필기가 다시 보이지 않게, 노래 목록 쪽은 지운다)
 function saveInk(id, doc){
