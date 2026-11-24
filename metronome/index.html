@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>찬양팀 메트로놈</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -62,6 +62,10 @@
 
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
+/* 아이패드·아이폰 확대 막기: 두 번 탭 확대 없음, 길게 눌러 글자 선택·돋보기 없음(입력 칸은 그대로) */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.5;letter-spacing:-.005em;
   display:flex;flex-direction:column;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -203,11 +207,25 @@ button[disabled]{cursor:default}
 .ink-cursor{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;opacity:0;box-shadow:0 0 0 1px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.8);transition:opacity .12s}
 .ink-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#8a8f98;font-size:13px;pointer-events:none}
 .ink-wrap.off .ink-live{cursor:default}
+.ink-selbar{position:absolute;left:0;top:0;display:flex;gap:2px;padding:3px;border-radius:11px;background:#1d2230;box-shadow:0 4px 14px rgba(0,0,0,.28);z-index:3;transform:translate(-50%,0);white-space:nowrap}
+.ink-selbar[hidden]{display:none}
+.ink-selbar button{padding:6px 11px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;min-height:32px;touch-action:manipulation}
+.ink-selbar button:active{background:rgba(255,255,255,.14)}
+.ink-selbar button.del{color:#ff8a8d}
 .ink-wrap.off .ink-paper{opacity:.75}
 .ink-sep{width:1px;height:22px;background:var(--line-2);margin:0 2px}
 .ink-size{display:flex;align-items:center;gap:6px;flex:1 1 80px;min-width:76px;font-size:11.5px;color:var(--muted);font-weight:600;padding:0 4px}
 .ink-size input{flex:1;min-width:50px;accent-color:var(--accent)}
 .ink-size-v{min-width:22px;text-align:right;color:var(--fg-2)}
+.ink-size-l{white-space:nowrap}
+/* 필기 칸이 좁으면(아이패드 가로 한 화면 배치 등) 단추를 조금 줄이고 굵기 글자는 숨겨 슬라이더 자리를 확보 */
+.inkpad{container-type:inline-size}
+@container (max-width:620px){
+  .ink-bar{gap:3px}
+  .ink-bar button{width:32px;height:32px}
+  .ink-size-l{display:none}
+  .ink-size{min-width:64px;padding:0 2px}
+}
 .panel{background:var(--surface);border-radius:22px;padding:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;box-shadow:0 0 0 1px var(--line)}
 .form-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .form-head .t{font-weight:700;font-size:15px}
@@ -2364,12 +2382,13 @@ const inkIsHl = st => st.w===3 || st.w>=100;
 const inkWidth = st => st.w===1 ? 2.4 : st.w===3 ? 16 : st.w>=100 ? st.w-100 : st.w/10;
 const INK_RANGE = {pen:[1,8,0.2], hl:[6,40,1], erase:[4,70,1]};
 const INK_TOOL = (()=>{ let t={}; try{ t=JSON.parse(localStorage.getItem('metronome-inktool')||'{}'); }catch(e){}
-  return {k:['pen','hl','erase'].includes(t.k)?t.k:'pen', c:t.c??0, hc:t.hc??3, size:{pen:t.size?.pen??2.4, hl:t.size?.hl??16, erase:t.size?.erase??18}}; })();
+  return {k:['pen','hl','erase','lasso'].includes(t.k)?t.k:'pen', c:t.c??0, hc:t.hc??3, size:{pen:t.size?.pen??2.4, hl:t.size?.hl??16, erase:t.size?.erase??18}}; })();
 const saveInkTool = ()=>{ try{ localStorage.setItem('metronome-inktool', JSON.stringify(INK_TOOL)); }catch(e){} };
 const INK_PADS = new Set();
 const penSeen = () => { try{ return localStorage.getItem('metronome-pen')==='1'; }catch(e){ return false; } };
 const ICON_ERASE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4-4L14 6l7 7-8 8z"/><path d="M22 21H7"/></svg>';
 const ICON_UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>';
+const ICON_LASSO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 17.6C5.2 16.6 3 14.4 3 11.8 3 7.5 7 4 12 4s9 3.5 9 7.8-4 7.8-9 7.8c-.9 0-1.8-.1-2.6-.3" stroke-dasharray="3.2 2.6"/><path d="M8.6 17.2c.4 1.8-.6 3.3-2.6 3.8"/></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
 // 획을 고르게(점 사이를 gap 이하로) 채운다: 지우개가 빨리 지나가도 정확히 끊기게
 function inkDensify(p, gap){
@@ -2381,6 +2400,15 @@ function inkDensify(p, gap){
   }
   return o.map(v=>Math.round(v));
 }
+function inPoly(x, y, poly){   // poly: [x0,y0,x1,y1,...]
+  let c = false;
+  for(let i=0, j=poly.length-2; i<poly.length; j=i, i+=2){
+    const xi=poly[i], yi=poly[i+1], xj=poly[j], yj=poly[j+1];
+    if((yi>y) !== (yj>y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi) c = !c;
+  }
+  return c;
+}
+const span = (v, lo, hi) => lo>hi ? (lo+hi)/2 : clamp(v, lo, hi);
 function inkBox(st){ const p=st.pts; let a=1e9,b=1e9,c=-1e9,d=-1e9; for(let i=0;i<p.length;i+=3){ if(p[i]<a)a=p[i]; if(p[i]>c)c=p[i]; if(p[i+1]<b)b=p[i+1]; if(p[i+1]>d)d=p[i+1]; } const h=inkWidth(st)/2; return st.bb=[a-h,b-h,c+h,d+h]; }
 class InkPad{
   constructor(root, onChange){
@@ -2392,17 +2420,21 @@ class InkPad{
         ${pen(0,'검정')}${pen(1,'빨강')}${pen(2,'파랑')}${pen(7,'초록')}<i class="ink-sep"></i>
         ${hl(3,'노랑')}${hl(4,'초록')}${hl(5,'분홍')}${hl(6,'하늘')}<i class="ink-sep"></i>
         <button data-ink="erase" title="지우개" aria-label="지우개">${ICON_ERASE}</button>
+        <button data-ink="lasso" title="올가미 · 둘러싸서 옮기기" aria-label="올가미">${ICON_LASSO}</button>
         <label class="ink-size" title="굵기·크기"><span class="ink-size-l"></span><input type="range" aria-label="굵기"><span class="ink-size-v num"></span></label>
         <button data-ink="undo" title="되돌리기" aria-label="되돌리기">${ICON_UNDO}</button>
         <button data-ink="clear" title="전체 지우기" aria-label="전체 지우기">${ICON_TRASH}</button>
       </div>
-      <div class="ink-wrap"><div class="ink-paper"><canvas class="ink-base"></canvas><canvas class="ink-live"></canvas><div class="ink-cursor"></div><div class="ink-empty"></div></div></div>`;
+      <div class="ink-wrap"><div class="ink-paper"><canvas class="ink-base"></canvas><canvas class="ink-live"></canvas><div class="ink-cursor"></div><div class="ink-empty"></div><div class="ink-selbar" hidden><button data-sel="dup">복제</button><button data-sel="del" class="del">삭제</button></div></div></div>`;
     this.wrap = root.querySelector('.ink-wrap'); this.paper = root.querySelector('.ink-paper');
     this.cv = root.querySelector('.ink-base'); this.ctx = this.cv.getContext('2d');
     this.lv = root.querySelector('.ink-live'); this.lctx = this.lv.getContext('2d');
     this.cursor = root.querySelector('.ink-cursor'); this.empty = root.querySelector('.ink-empty');
-    this.range = root.querySelector('.ink-size input');
+    this.range = root.querySelector('.ink-size input'); this.sizeBox = root.querySelector('.ink-size');
+    this.selbar = root.querySelector('.ink-selbar'); this.sel = null;
     root.querySelector('.ink-bar').addEventListener('click', e=>this.onBar(e));
+    this.selbar.addEventListener('pointerdown', e=>e.stopPropagation());
+    this.selbar.addEventListener('click', e=>{ const b=e.target.closest('[data-sel]'); if(!b) return; b.dataset.sel==='del' ? this.selDelete() : this.selDuplicate(); });
     this.range.addEventListener('input', ()=>{ INK_TOOL.size[INK_TOOL.k] = +this.range.value; saveInkTool(); INK_PADS.forEach(p=>p.paintBar()); });
     const el = this.lv;   // 위에 덮인 캔버스가 입력을 받는다
     el.addEventListener('pointerdown', e=>this.down(e));
@@ -2417,11 +2449,15 @@ class InkPad{
     const t = INK_TOOL;
     this.root.querySelectorAll('.ink-bar [data-ink]').forEach(b=>{
       const k=b.dataset.ink; if(k==='undo'||k==='clear') return;
-      b.setAttribute('aria-pressed', String(k===t.k && (k==='erase' || +b.dataset.c===(k==='hl'?t.hc:t.c))));
+      b.setAttribute('aria-pressed', String(k===t.k && (k==='erase' || k==='lasso' || +b.dataset.c===(k==='hl'?t.hc:t.c))));
     });
-    const [lo,hi,st] = INK_RANGE[t.k]; this.range.min=lo; this.range.max=hi; this.range.step=st; this.range.value=t.size[t.k];
-    this.root.querySelector('.ink-size-l').textContent = t.k==='erase' ? '지우개' : t.k==='hl' ? '형광' : '굵기';
-    this.root.querySelector('.ink-size-v').textContent = t.k==='pen' ? (+t.size.pen).toFixed(1) : Math.round(t.size[t.k]);
+    if(t.k!=='lasso') this.clearSel();
+    this.sizeBox.style.visibility = t.k==='lasso' ? 'hidden' : '';   // 올가미는 굵기가 없다(자리는 그대로 둬 도구 줄이 흔들리지 않게)
+    if(INK_RANGE[t.k]){
+      const [lo,hi,st] = INK_RANGE[t.k]; this.range.min=lo; this.range.max=hi; this.range.step=st; this.range.value=t.size[t.k];
+      this.root.querySelector('.ink-size-l').textContent = t.k==='erase' ? '지우개' : t.k==='hl' ? '형광' : '굵기';
+      this.root.querySelector('.ink-size-v').textContent = t.k==='pen' ? (+t.size.pen).toFixed(1) : Math.round(t.size[t.k]);
+    }
     this.cursorSize();
   }
   onBar(e){
@@ -2432,14 +2468,14 @@ class InkPad{
       if(!this.strokes.length) return;
       if(!b.dataset.arm){ b.dataset.arm='1'; b.classList.add('arm'); toast('한 번 더 누르면 필기를 모두 지웁니다'); setTimeout(()=>{ b.dataset.arm=''; b.classList.remove('arm'); },3000); return; }
       b.dataset.arm=''; b.classList.remove('arm');
-      this.hist.push({prev:this.strokes}); this.strokes=[]; this.render(); this.changed(); return;
+      this.clearSel(); this.hist.push({prev:this.strokes}); this.strokes=[]; this.render(); this.changed(); return;
     }
     INK_TOOL.k = k; if(k==='pen') INK_TOOL.c = +b.dataset.c; if(k==='hl') INK_TOOL.hc = +b.dataset.c;
     saveInkTool(); INK_PADS.forEach(p=>p.paintBar());
   }
-  setOff(msg){ this.off = !!msg; this.wrap.classList.toggle('off', this.off); this.strokes=[]; this.hist=[]; this.render(); this.empty.textContent = msg||''; this.empty.hidden=!msg; }
+  setOff(msg){ this.clearSel(); this.off = !!msg; this.wrap.classList.toggle('off', this.off); this.strokes=[]; this.hist=[]; this.render(); this.empty.textContent = msg||''; this.empty.hidden=!msg; }
   load(doc, emptyMsg){
-    this.off = false; this.wrap.classList.remove('off');
+    this.off = false; this.wrap.classList.remove('off'); this.clearSel();
     this.strokes = doc && doc.s ? doc.s.map(decStroke) : []; this.hist = []; this.cur = null; this.emptyMsg = emptyMsg || '';
     this.render();
   }
@@ -2453,7 +2489,7 @@ class InkPad{
   }
   cursorSize(){
     const css = this.paper.clientWidth/INK_W, t = INK_TOOL;
-    const d = t.k==='erase' ? t.size.erase*2*css : Math.max(4, t.size[t.k]*css);
+    const d = t.k==='erase' ? t.size.erase*2*css : Math.max(4, (t.size[t.k]||0)*css);
     this.cursor.style.width = this.cursor.style.height = d+'px';
     this.cursor.classList.toggle('erase', t.k==='erase');
   }
@@ -2465,10 +2501,16 @@ class InkPad{
   }
   down(e){
     if(this.off || e.button>0) return;
+    const t = INK_TOOL;
+    if(t.k==='lasso' && this.cur && this.cur.lasso) return;   // 올가미 중에 닿은 다른 손가락은 무시
     if(e.pointerType==='pen'){ try{ localStorage.setItem('metronome-pen','1'); }catch(_){} }
-    else if(e.pointerType==='touch' && penSeen()) return;   // 펜을 쓰는 기기에서는 손바닥·손가락은 무시
+    else if(e.pointerType==='touch' && penSeen()){
+      // 펜을 쓰는 기기에서는 손바닥·손가락은 무시. 단, 올가미로 고른 필기는 손가락으로도 옮길 수 있다
+      if(!(t.k==='lasso' && this.selHit(...this.pt(e)))) return;
+    }
     e.preventDefault(); try{ this.lv.setPointerCapture(e.pointerId); }catch(_){}
-    const [x,y,p] = this.pt(e), t = INK_TOOL;
+    const [x,y,p] = this.pt(e);
+    if(t.k==='lasso'){ this.lassoDown(e, x, y); return; }
     if(t.k==='erase'){ this.cur = {erase:true, id:e.pointerId, prev:this.strokes, hit:false, last:[x,y]}; this.queueErase(x,y); this.showCursor(e); return; }
     const w = t.k==='hl' ? 100 + Math.round(t.size.hl) : Math.round(t.size.pen*10);
     this.cur = {id:e.pointerId, st:{c: t.k==='hl' ? t.hc : t.c, w, pts:[x,y,p]}};
@@ -2476,9 +2518,11 @@ class InkPad{
   }
   move(e){
     this.showCursor(e);
+    if(!this.cur && INK_TOOL.k==='lasso' && !this.off){ const h = this.selHit(...this.pt(e)); this.lv.style.cursor = h==='scale' ? 'nwse-resize' : h ? 'move' : ''; }
     const c = this.cur; if(!c || c.id!==e.pointerId) return;
     e.preventDefault();
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    if(c.lasso){ this.lassoMove(c, evs.length ? evs : [e]); return; }
     for(const ev of (evs.length ? evs : [e])){
       const [x,y,p] = this.pt(ev);
       if(c.erase){
@@ -2496,6 +2540,7 @@ class InkPad{
   up(e){
     const c = this.cur; if(!c || (e.pointerId!=null && c.id!==e.pointerId)) return;
     this.cur = null;
+    if(c.lasso){ this.lassoUp(c); return; }
     if(c.erase){
       this.flushErase(); if(e.pointerType!=='mouse') this.cursor.style.opacity = 0;
       if(c.hit){ this.hist.push({prev:c.prev}); this.changed(); }
@@ -2545,6 +2590,7 @@ class InkPad{
   }
   undo(){
     const h = this.hist.pop(); if(!h) return;
+    this.clearSel();
     if(h.add) this.strokes.pop(); else this.strokes = h.prev;
     this.render(); this.changed();
   }
@@ -2552,8 +2598,9 @@ class InkPad{
   render(){
     const W = this.cv.width, H = this.cv.height; if(!W) return;
     this.ctx.clearRect(0,0,W,H);
-    const k = this.scale();
-    for(const st of this.strokes) this.drawStroke(this.ctx, st, k);
+    const k = this.scale(), drag = this.cur && this.cur.lasso && this.cur.lasso!=='draw';
+    for(const st of this.strokes){ if(drag && this.sel && this.sel.has(st)) continue; this.drawStroke(this.ctx, st, k); }
+    if(this.sel) this.drawSel();
     if(this.off) this.empty.hidden = false;
     else { this.empty.textContent = this.emptyMsg || ''; this.empty.hidden = this.strokes.length>0 || !this.emptyMsg; }
   }
@@ -2576,6 +2623,117 @@ class InkPad{
     }
     ctx.lineTo(p[(n-1)*3]*k,p[(n-1)*3+1]*k); ctx.lineWidth = cw>0 ? cw : wd(n-1); ctx.stroke();
     ctx.globalAlpha = 1;
+  }
+  /* ---- 올가미: 둘러싸서 고르고, 끌어서 옮기고, 오른쪽 아래 손잡이로 크기 조절 ----
+     고른 획은 this.sel(획 객체 모음). 옮기는 동안 아래 캔버스에서는 고른 획을 빼고, 위 캔버스에 옮겨진 모습만 그린다 */
+  selBox(){ let a=1e9,b=1e9,c=-1e9,d=-1e9; for(const st of this.sel){ const bb=st.bb||inkBox(st); if(bb[0]<a)a=bb[0]; if(bb[1]<b)b=bb[1]; if(bb[2]>c)c=bb[2]; if(bb[3]>d)d=bb[3]; } return [a,b,c,d]; }
+  selHit(x, y){
+    if(!this.sel || INK_TOOL.k!=='lasso') return null;
+    const css = (this.paper.clientWidth||INK_W)/INK_W, b = this.selBox(), pad = 10/css, hr = 22/css;
+    if(Math.hypot(x-b[2], y-b[3]) <= hr) return 'scale';
+    return x>=b[0]-pad && x<=b[2]+pad && y>=b[1]-pad && y<=b[3]+pad ? 'move' : null;
+  }
+  clearSel(){ if(!this.sel && !(this.cur && this.cur.lasso)) return; this.sel = null; if(this.cur && this.cur.lasso) this.cur = null; this.selbar.hidden = true; this.clearLive(); this.lv.style.cursor = ''; }
+  lassoDown(e, x, y){
+    const hit = this.selHit(x, y);
+    if(hit){ this.cur = {lasso:hit, id:e.pointerId, x0:x, y0:y, box:this.selBox(), dx:0, dy:0, s:1}; this.selbar.hidden = true; this.render(); return; }
+    this.sel = null; this.selbar.hidden = true;
+    this.cur = {lasso:'draw', id:e.pointerId, pts:[x,y]}; this.drawLasso();
+  }
+  lassoMove(c, evs){
+    const [x,y] = this.pt(evs[evs.length-1]);
+    if(c.lasso==='draw'){
+      for(const ev of evs){ const [ex,ey] = this.pt(ev), q = c.pts; if(Math.hypot(ex-q[q.length-2], ey-q[q.length-1]) >= 3) q.push(ex,ey); }
+      this.drawLasso(); return;
+    }
+    const b = c.box;
+    if(c.lasso==='move'){ c.dx = span(x-c.x0, -b[0], INK_W-b[2]); c.dy = span(y-c.y0, -b[1], INK_H-b[3]); }
+    else {
+      const w = Math.max(1, b[2]-b[0]), h = Math.max(1, b[3]-b[1]);
+      const s = ((x-b[0])*w + (y-b[1])*h) / (w*w + h*h);     // 대각선 방향으로 끈 만큼(가로세로 비율 유지)
+      c.s = span(s, Math.max(0.2, 8/Math.max(w,h)), Math.min(5, (INK_W-b[0])/w, (INK_H-b[1])/h));
+    }
+    this.drawSel();
+  }
+  lassoUp(c){
+    if(c.lasso==='draw'){
+      const q = c.pts;
+      if(q.length >= 8){
+        const pick = new Set();
+        for(const st of this.strokes){
+          const bb = st.bb || inkBox(st), p = st.pts; let inn = 0; const n = p.length/3;
+          for(let i=0;i<p.length;i+=3) if(inPoly(p[i], p[i+1], q)) inn++;
+          if(inn > 0 && inn >= n*0.5) pick.add(st);     // 획의 절반 이상이 올가미 안에 들면 고른다
+        }
+        this.sel = pick.size ? pick : null;
+      }
+      this.clearLive(); if(this.sel) this.drawSel();
+      return;
+    }
+    const moved = c.dx || c.dy || c.s !== 1;
+    if(moved){
+      const b = c.box, s = c.s, prev = this.strokes, nsel = new Set();
+      const xf = st => {
+        const p = st.pts; let o = new Array(p.length);
+        for(let i=0;i<p.length;i+=3){ o[i] = b[0]+(p[i]-b[0])*s+c.dx; o[i+1] = b[1]+(p[i+1]-b[1])*s+c.dy; o[i+2] = p[i+2]; }
+        o = s > 1.05 ? inkDensify(o, 4) : o.map(v=>Math.round(v));
+        let w = st.w;
+        if(s !== 1){ const wd = inkWidth(st)*s; w = inkIsHl(st) ? 100 + clamp(Math.round(wd), 2, 90) : clamp(Math.round(wd*10), 10, 99); }
+        const n = {c:st.c, w, pts:o}; nsel.add(n); return n;
+      };
+      this.strokes = prev.map(st => this.sel.has(st) ? xf(st) : st);
+      if(inkSize(this.doc()) > INK_MAX){ this.strokes = prev; toast('필기 저장 공간이 가득 차서 크게 늘릴 수 없습니다'); }
+      else { this.hist.push({prev}); this.sel = nsel; }
+    }
+    this.render();
+    if(moved) this.changed();
+  }
+  selDelete(){
+    if(!this.sel) return;
+    const prev = this.strokes; this.strokes = prev.filter(st=>!this.sel.has(st));
+    this.hist.push({prev}); this.clearSel(); this.render(); this.changed();
+  }
+  selDuplicate(){
+    if(!this.sel) return;
+    const b = this.selBox(), dx = span(24, -b[0], INK_W-b[2]), dy = span(24, -b[1], INK_H-b[3]);
+    const prev = this.strokes, copies = [];
+    for(const st of prev) if(this.sel.has(st)){ const p = st.pts.slice(); for(let i=0;i<p.length;i+=3){ p[i] = Math.round(p[i]+dx); p[i+1] = Math.round(p[i+1]+dy); } copies.push({c:st.c, w:st.w, pts:p}); }
+    this.strokes = prev.concat(copies);
+    if(inkSize(this.doc()) > INK_MAX){ this.strokes = prev; toast('필기 저장 공간이 가득 찼습니다. 일부를 지우고 복제해 주세요'); return; }
+    this.hist.push({prev}); this.sel = new Set(copies); this.render(); this.changed();
+  }
+  drawLasso(){
+    const c = this.cur, k = this.scale(), x = this.lctx, q = c.pts; this.clearLive();
+    x.save(); x.lineWidth = 1.5*(this.cv.width/(this.paper.clientWidth||1)); x.setLineDash([6*x.lineWidth/1.5, 5*x.lineWidth/1.5]); x.strokeStyle = '#3e63dd'; x.fillStyle = 'rgba(62,99,221,.07)';
+    x.beginPath(); x.moveTo(q[0]*k, q[1]*k); for(let i=2;i<q.length;i+=2) x.lineTo(q[i]*k, q[i+1]*k);
+    if(q.length >= 6){ x.closePath(); x.fill(); }
+    x.stroke(); x.restore();
+  }
+  drawSel(){
+    if(!this.sel) return;
+    const k = this.scale(), x = this.lctx, c = this.cur, drag = c && c.lasso && c.lasso!=='draw', dpr = this.cv.width/(this.paper.clientWidth||1);
+    this.clearLive();
+    let b = this.selBox();
+    if(drag){
+      const o = c.box, s = c.s;
+      x.save(); x.translate((o[0]+c.dx)*k, (o[1]+c.dy)*k); x.scale(s, s); x.translate(-o[0]*k, -o[1]*k);
+      for(const st of this.strokes) if(this.sel.has(st)) this.drawStroke(x, st, k);
+      x.restore();
+      b = [o[0]+c.dx, o[1]+c.dy, o[0]+c.dx+(o[2]-o[0])*s, o[1]+c.dy+(o[3]-o[1])*s];
+    }
+    const pad = 6*dpr, X0 = b[0]*k-pad, Y0 = b[1]*k-pad, X1 = b[2]*k+pad, Y1 = b[3]*k+pad;
+    x.save(); x.lineWidth = 1.5*dpr; x.setLineDash([6*dpr, 4*dpr]); x.strokeStyle = '#3e63dd'; x.fillStyle = 'rgba(62,99,221,.05)';
+    x.fillRect(X0, Y0, X1-X0, Y1-Y0); x.strokeRect(X0, Y0, X1-X0, Y1-Y0); x.setLineDash([]);
+    x.beginPath(); x.arc(b[2]*k, b[3]*k, 7*dpr, 0, Math.PI*2); x.fillStyle = '#fff'; x.fill(); x.lineWidth = 2*dpr; x.stroke();   // 크기 조절 손잡이
+    x.restore();
+    if(drag){ this.selbar.hidden = true; return; }
+    // 복제·삭제 막대: 고른 칸 위(자리가 없으면 아래)
+    const css = 1/dpr, W = this.paper.clientWidth, H = this.paper.clientHeight;
+    this.selbar.hidden = false;
+    const bw = this.selbar.offsetWidth || 120, bh = this.selbar.offsetHeight || 38;
+    const cx = clamp((X0+X1)/2*css, bw/2+4, W-bw/2-4);
+    let ty = Y0*css - bh - 8; if(ty < 4) ty = Y1*css + 10; if(ty + bh > H - 4) ty = Math.max(4, Y0*css + 4);
+    this.selbar.style.left = cx+'px'; this.selbar.style.top = ty+'px';
   }
   // 쓰는 중인 획은 위 캔버스에만 그린다(아래 필기 전체를 다시 그리지 않아 빠름)
   drawLive(){ const c=this.cur; if(!c || c.erase) return; this.clearLive(); this.drawStroke(this.lctx, c.st, this.scale()); this.empty.hidden = true; }
@@ -2876,9 +3034,16 @@ document.addEventListener('keydown', e=>{
     else if(e.key==='f' || e.key==='F'){ toggleFollow(); }
     else if((e.key==='n' || e.key==='N') && P.playing && P.mode==='form'){ queueSection(P.si+1); }
     else if(e.key==='r' || e.key==='R'){ queueSection(P.si); }
+    else if((e.key==='Delete' || e.key==='Backspace') && playInk && playInk.sel){ e.preventDefault(); playInk.selDelete(); }
   }
   if(e.key==='Escape') document.querySelectorAll('.scrim').forEach(s=>s.hidden=true);
 });
+
+/* 아이패드·아이폰에서 화면이 확대되지 않게: 두 손가락 벌리기(핀치)와 두 번 탭 확대를 막는다.
+   두 번 탭은 CSS touch-action:manipulation이 막고, 핀치는 Safari 제스처 이벤트를 막는다 */
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t, e=>e.preventDefault(), {passive:false}));
+document.addEventListener('touchmove', e=>{ if(e.touches.length>1 || (e.scale!=null && e.scale!==1)) e.preventDefault(); }, {passive:false});
+document.addEventListener('dblclick', e=>{ if(!e.target.closest('input,textarea,select')) e.preventDefault(); }, {passive:false});
 
 /* ---------- boot ---------- */
 (function boot(){
