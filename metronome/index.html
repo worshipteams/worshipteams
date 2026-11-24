@@ -345,6 +345,8 @@ textarea.inp{min-height:88px;resize:vertical;line-height:1.55}
 .sheet-h h2{margin:0;font-size:18px;letter-spacing:-.015em}
 .sheet-b{overflow:auto;padding:4px 18px 18px;display:grid;gap:16px;min-height:0}
 .sheet-f{display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.sheet-f > span{flex-wrap:wrap;justify-content:flex-end}
+#fBoth.arm, #inkToLib.arm{background:var(--accent);color:var(--accent-ink)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{padding:5px 11px;border-radius:9px;background:var(--surface-2);font-family:var(--display);font-weight:800;font-stretch:85%;font-size:15px;color:var(--sc,var(--fg))}
 .chips button:hover{box-shadow:0 0 0 1px var(--sc,var(--accent))}
@@ -607,7 +609,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
       <p class="hint" id="formHint">블록을 누르면 그 파트부터 시작합니다. 연주 중에 누르면 다음 파트로 예약됩니다.</p>
     </div>
     <div class="panel ink-panel" id="inkPanel">
-      <div class="ink-head"><span class="t">필기<small id="inkWhere"></small></span><button class="ghost sm" id="inkReset" hidden>노래 목록 필기로 되돌리기</button></div>
+      <div class="ink-head"><span class="t">필기<small id="inkWhere"></small></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost sm" id="inkToLib" hidden title="이 필기로 노래 목록 곡 필기를 덮어씁니다">노래 목록에도 저장</button><button class="ghost sm" id="inkReset" hidden>노래 목록 필기로 되돌리기</button></span></div>
       <div id="playInk"></div>
     </div>
   </div>
@@ -731,7 +733,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
     </div>
     <div class="sheet-f">
       <button class="ghost danger" id="fDelete">노래 목록에서 삭제</button>
-      <span style="display:flex;gap:8px"><button class="ghost" data-close>취소</button><button class="ghost" id="fTemp" hidden>이번만 임시로</button><button class="primary" id="fSave">저장</button></span>
+      <span style="display:flex;gap:8px"><button class="ghost" data-close>취소</button><button class="ghost" id="fTemp" hidden>이번만 임시로</button><button class="ghost" id="fBoth" hidden title="노래 목록 원본도 이 내용(송폼·필기·BPM 등)으로 덮어씁니다">노래 목록에도 저장</button><button class="primary" id="fSave">저장</button></span>
     </div>
   </div>
 </div>
@@ -2098,7 +2100,7 @@ function openSongEditor(id, addToList, ctxList, temp){
     const changed = s._over || s._lov;
     note.hidden = false;
     note.innerHTML = (editCtx
-      ? `<span><b>「${lname}」 재생목록에만 저장됩니다.</b> 제목·BPM·송폼 등을 바꿔도 노래 목록의 원래 곡은 그대로이고, 다른 기기에서도 이 재생목록에서는 이 설정으로 나옵니다.</span>`
+      ? `<span><b>「${lname}」 재생목록에만 저장됩니다.</b> 제목·BPM·송폼 등을 바꿔도 노래 목록의 원래 곡은 그대로이고, 다른 기기에서도 이 재생목록에서는 이 설정으로 나옵니다. 원본까지 바꾸려면 「노래 목록에도 저장」을 누르세요.</span>`
       : `<span><b>지금 연주에서 임시로만 적용됩니다.</b> 노래 목록(DB)에는 저장되지 않고, 앱을 닫으면 사라집니다. 원본을 바꾸려면 노래 목록에서 수정하세요.</span>`)
       + (changed ? '<button class="ghost" data-resetover="1">노래 목록 설정으로 되돌리기</button>' : '');
   } else { note.hidden = true; note.innerHTML=''; }
@@ -2118,6 +2120,7 @@ function openSongEditor(id, addToList, ctxList, temp){
   $('#fDelete').textContent = editTemp ? '이 재생목록에서 빼기' : '노래 목록에서 삭제'; $('#fDelete').dataset.arm='';
   $('#fSave').textContent = editCtx ? '재생목록에 저장' : editTemp ? '임시 적용' : '저장';
   $('#fTemp').hidden = !editCtx;
+  $('#fBoth').hidden = !editCtx; $('#fBoth').dataset.arm=''; $('#fBoth').classList.remove('arm'); $('#fBoth').textContent='노래 목록에도 저장';
   // 파트 추가: 번호 없는 것(V·C·B…)과 번호 붙은 것(V1·C2·B2…)을 묶음별로
   $('#formChips').innerHTML = PART_GROUPS.map(([name, list])=>`<span class="chip-group"><small>${name}</small>${list.map(a=>`<button data-chip="${a}" style="--sc:${scv(parseLabel(a).k)}">${a}</button>`).join('')}</span>`).join('');
   FB = formToBlocks(s.form||''); fbCueOpen=-1;
@@ -2307,6 +2310,18 @@ function saveSong(tempOnly){
       const base = S.songs[editId] || {};
       perf.title = $('#fTitle').value.trim() || base.title || '';
       perf.artist = $('#fArtist').value.trim();
+    }
+    if(editCtx && tempOnly==='both'){
+      // 노래 목록 원본을 이 내용으로 덮어쓰고, 이 재생목록의 따로 설정·임시값·필기는 지운다
+      // → 이 재생목록도 노래 목록 원본을 그대로 따라가고, 나중에 노래 목록을 고치면 함께 바뀐다
+      const lib = S.songs[editId]; if(!lib) return;
+      Object.assign(lib, perf); markDirty('songs', editId);
+      clearListPerf(editCtx, editId); clearTemp(editId, editCtx);
+      if(edInk){
+        saveInk(inkSongKey(editId), edInk.doc()); edInkDirty = false;
+        const lk = inkListKey(editCtx, editId); if(S.inks[lk]){ delete S.inks[lk]; markDirty('inks', lk, 'del'); }
+      }
+      closeSheet('songSheet'); scheduleRender(); toast('노래 목록 원본에도 저장했습니다'); return;
     }
     commitEditorInk(editId);
     if(editCtx && tempOnly!==true){
@@ -2763,7 +2778,7 @@ function renderInk(force){
     inkSaveT = setTimeout(()=>{ saveInk(t.write, doc); playInk.ver = (S.inks[t.write]||{}).u || 0; playInk.src = 'own'; renderInkMeta(); }, 500);
   });
   const t = inkTarget();
-  if(t.off){ playInk.target = t; playInk.key = 'off'; playInk.setOff(t.off); $('#inkWhere').textContent=''; $('#inkReset').hidden = true; return; }
+  if(t.off){ playInk.target = t; playInk.key = 'off'; playInk.setOff(t.off); $('#inkWhere').textContent=''; $('#inkReset').hidden = true; $('#inkToLib').hidden = true; return; }
   const own = S.inks[t.write], fb = t.fallback ? S.inks[t.fallback] : null;
   const src = own ? 'own' : fb ? 'fb' : 'none', ver = (own||fb||{}).u || 0;
   if(!force && playInk.key===t.write && playInk.src===src && playInk.ver===ver) { renderInkMeta(); return; }
@@ -2777,6 +2792,7 @@ function renderInkMeta(){
   const own = S.inks[t.write], fb = t.fallback ? S.inks[t.fallback] : null;
   $('#inkWhere').textContent = !t.list ? '노래 목록 곡에 저장' : own ? '이 재생목록 필기' : fb ? '노래 목록 필기 · 쓰면 이 재생목록에 저장' : '이 재생목록에 저장';
   $('#inkReset').hidden = !(t.list && own && fb);
+  $('#inkToLib').hidden = !(t.list && own && own.s && own.s.length);
 }
 
 /* 곡 편집 창 필기 칸 */
@@ -2913,6 +2929,18 @@ $('#inkReset').addEventListener('click', e=>{
   if(S.inks[t.write]){ delete S.inks[t.write]; markDirty('inks', t.write, 'del'); }
   renderInk(true); toast('노래 목록 필기로 되돌렸습니다');
 });
+$('#inkToLib').addEventListener('click', e=>{
+  const b = e.currentTarget, t = playInk && playInk.target; if(!t || !t.list) return;
+  const sid = curSong() && curSong().id; if(!sid) return;
+  if(!b.dataset.arm){ b.dataset.arm='1'; b.classList.add('arm'); b.textContent='한 번 더 누르면 노래 목록 필기를 덮어씁니다';
+    setTimeout(()=>{ if(b.dataset.arm){ b.dataset.arm=''; b.classList.remove('arm'); b.textContent='노래 목록에도 저장'; } },3500); return; }
+  b.dataset.arm=''; b.classList.remove('arm'); b.textContent='노래 목록에도 저장';
+  // 아직 저장 안 된 획까지 포함해 노래 목록 곡 필기로 옮기고, 이 재생목록은 다시 노래 목록 필기를 따라가게 한다
+  clearTimeout(inkSaveT);
+  saveInk(inkSongKey(sid), playInk.doc());
+  if(S.inks[t.write]){ delete S.inks[t.write]; markDirty('inks', t.write, 'del'); }
+  renderInk(true); toast('노래 목록 곡 필기에도 저장했습니다');
+});
 $('#openSettings').addEventListener('click', ()=>{ renderSettings(); openSheet('settingsSheet'); });
 $('#editCurSong').addEventListener('click', ()=>{ const s=curSong(); if(s) openSongEditor(s.id, null, S.meta.cur.list, true); });
 $('#tmpBadge').addEventListener('click', ()=>{ const s=curSong(); if(!s) return; if(P.playing) stopPlay(); clearTemp(s.id, S.meta.cur.list); renderPlay(); toast('노래 목록 원래 설정으로 돌렸습니다'); });
@@ -3020,6 +3048,13 @@ $('#slDelete').addEventListener('click', e=>{
 $('#libNew').addEventListener('click', ()=>openSongEditor(null));
 $('#fSave').addEventListener('click', ()=>saveSong(false));
 $('#fTemp').addEventListener('click', ()=>saveSong(true));
+$('#fBoth').addEventListener('click', e=>{
+  const b = e.currentTarget;
+  if(!b.dataset.arm){ b.dataset.arm='1'; b.classList.add('arm'); b.textContent='한 번 더 누르면 노래 목록 원본을 덮어씁니다';
+    setTimeout(()=>{ if(b.dataset.arm){ b.dataset.arm=''; b.classList.remove('arm'); b.textContent='노래 목록에도 저장'; } },3500); return; }
+  b.dataset.arm=''; b.classList.remove('arm'); b.textContent='노래 목록에도 저장';
+  saveSong('both');
+});
 $('#fDelete').addEventListener('click', deleteSong);
 $('#fPlayAdd').addEventListener('click', ()=>{ const d=$('#fPlayDate').value; if(!d){ toast('날짜를 고르세요'); return; } editPlays.push({d, n:$('#fPlayNote').value.trim()}); $('#fPlayNote').value=''; renderEditorPlays(editId?S.songs[editId]:null); });
 $('#pickAdd').addEventListener('click', ()=>{ if(!openListId) return; addSongsToList(openListId, [...picked]); closeSheet('pickSheet'); renderLists(); renderPlay(); toast(`${picked.size}곡을 담았습니다`); });
