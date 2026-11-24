@@ -380,7 +380,10 @@ textarea.inp{min-height:88px;resize:vertical;line-height:1.55}
 .fb-cuepanel .chips button.mt{color:var(--steel)}
 .fb-cuepanel select,.fb-cuepanel input{padding:7px 10px;width:auto}
 .fb-cuepanel input{flex:1;min-width:120px}
-.fb-add{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fb-add{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+#formChips{gap:6px 14px}
+.chip-group{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.chip-group small{font-size:11px;color:var(--muted);font-weight:600;margin-right:1px}
 .chips-label{font-size:12px;color:var(--muted);font-weight:600}
 .fb-empty{color:var(--muted);font-size:13px;padding:14px;border:1px dashed var(--line-2);border-radius:12px;text-align:center}
 .hint{font-size:12px;color:var(--muted);margin:0;line-height:1.55}
@@ -652,8 +655,10 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 </div>
 
 <datalist id="fbLabels">
-  <option value="I">인트로</option><option value="V1">1절</option><option value="V2">2절</option><option value="V3">3절</option>
-  <option value="PC">프리코러스</option><option value="C">후렴</option><option value="LC">마지막 후렴</option><option value="B">브릿지</option>
+  <option value="I">인트로</option><option value="V">절</option><option value="V1">1절</option><option value="V2">2절</option><option value="V3">3절</option><option value="V4">4절</option>
+  <option value="PC">프리코러스</option><option value="PC1">프리코러스 1</option><option value="PC2">프리코러스 2</option>
+  <option value="C">후렴</option><option value="C1">후렴 1</option><option value="C2">후렴 2</option><option value="C3">후렴 3</option><option value="LC">마지막 후렴</option>
+  <option value="B">브릿지</option><option value="B1">브릿지 1</option><option value="B2">브릿지 2</option><option value="B3">브릿지 3</option>
   <option value="IL">간주</option><option value="Inst">연주</option><option value="T">태그</option><option value="R">리프레인</option>
   <option value="Vp">뱀프</option><option value="O">아웃트로</option><option value="E">엔딩</option>
 </datalist>
@@ -712,8 +717,8 @@ function parseLabel(raw){
   if(!def) return {k:'custom', en:label.toUpperCase(), ko:label, ab:label.slice(0,5), voice:null, say:label};
   const en = def.en + (n ? ' ' + n : '');
   const ko = def.k==='verse' ? (n ? n+'절' : '절') : def.ko + (n ? ' ' + n : '');
-  let voice = def.k;
-  if(def.k==='verse') voice = n && n<=4 ? 'verse'+n : 'verse';
+  // 번호가 붙으면 "Chorus two"처럼 번호까지 읽는다(1~4: 카운트 녹음과 이어 붙임, verse1~4는 녹음이 따로 있음)
+  const voice = n && n<=4 ? def.k+n : def.k;
   return {k:def.k, en, ko, ab:def.ab+(n||''), voice, say:ko};
 }
 // performance cues written in [brackets] inside the song form
@@ -1215,12 +1220,27 @@ function vbuf(name){
   for(const g of [voiceGender(), 'm']){
     const data = VOICE_SRC[g].get();
     if(!data){ loadVoices(g); continue; }
-    const raw = data.clips[name]; if(!raw) return null;
     const key = g+':'+name;
-    if(!VBUF[key]){ try{ VBUF[key] = raw.map(v=>pcmToBuf({sr:data.sr, pc:v.pc, d:v.d})); }catch(e){ return null; } }
+    if(!VBUF[key]){
+      const dec = v => pcmToBuf({sr:data.sr, pc:v.pc, d:v.d});
+      try{
+        if(data.clips[name]) VBUF[key] = data.clips[name].map(dec);
+        else {
+          // "chorus2"처럼 녹음이 없는 번호 파트: 파트 이름 + 숫자(카운트 녹음)를 같은 빠르기끼리 이어 붙인다
+          const m = name.match(/^([a-z]+)(\d)$/), a = m && data.clips[m[1]], c = m && data.clips['c'+m[2]];
+          if(a && c) VBUF[key] = a.map((v,i)=>joinBuf(dec(v), dec(c[i] || c[c.length-1])));
+          else if(a) VBUF[key] = a.map(dec);
+          else return null;
+        }
+      }catch(e){ return null; }
+    }
     return VBUF[key];
   }
   return null;
+}
+function joinBuf(a, b){
+  const gap = Math.round(a.sampleRate*0.04), out = ctx.createBuffer(1, a.length+gap+b.length, a.sampleRate), d = out.getChannelData(0);
+  d.set(a.getChannelData(0), 0); d.set(b.getChannelData(0), a.length+gap); out.__pc = a.__pc; return out;
 }
 // 템포에 맞춰 말 빠르기를 고른다: 주어진 시간(avail)의 fill 비율 안에 들어가는 가장 느린 녹음.
 // 셋 다 길면 가장 빠른 녹음을 조금 빨리 튼다(최대 maxRate배, 예전과 같은 방식).
@@ -1966,7 +1986,8 @@ function openSongEditor(id, addToList, ctxList, temp){
   $('#fDelete').textContent = editTemp ? '이 재생목록에서 빼기' : '노래 목록에서 삭제'; $('#fDelete').dataset.arm='';
   $('#fSave').textContent = editCtx ? '재생목록에 저장' : editTemp ? '임시 적용' : '저장';
   $('#fTemp').hidden = !editCtx;
-  $('#formChips').innerHTML = ['I','V1','V2','V3','PC','C','B','IL','Inst','T','O','E'].map(a=>`<button data-chip="${a}" style="--sc:${scv(parseLabel(a).k)}">${a}</button>`).join('');
+  // 파트 추가: 번호 없는 것(V·C·B…)과 번호 붙은 것(V1·C2·B2…)을 묶음별로
+  $('#formChips').innerHTML = PART_GROUPS.map(([name, list])=>`<span class="chip-group"><small>${name}</small>${list.map(a=>`<button data-chip="${a}" style="--sc:${scv(parseLabel(a).k)}">${a}</button>`).join('')}</span>`).join('');
   FB = formToBlocks(s.form||''); fbCueOpen=-1;
   { let m='blocks'; try{ m = localStorage.getItem(FB_KEY)||'blocks'; }catch(e){}
     if(parseForm(s.form||'').bad.length) m='text'; // 알아볼 수 없는 부분이 있으면 지워지지 않게 글로 연다
@@ -2067,6 +2088,13 @@ function setFormMode(m){
   document.querySelectorAll('[data-fbmode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.fbmode===m)));
   if(m==='blocks'){ fbCueOpen=-1; renderBlocks(); }
 }
+const PART_GROUPS = [
+  ['벌스', ['V','V1','V2','V3','V4']],
+  ['프리코러스', ['PC','PC1','PC2']],
+  ['후렴', ['C','C1','C2','C3','LC']],
+  ['브릿지', ['B','B1','B2','B3']],
+  ['그 밖', ['I','IL','Inst','T','PoC','Vp','O','E']],
+];
 function fbAdd(label){
   const k = parseLabel(label).k, bars = ['intro','outro','ending','tag','interlude','turnaround'].includes(k) ? 4 : 8;
   FB.push({key:uid(), label, bars, rep:1, cues:[]}); fbCueOpen=-1; renderBlocks(); fbSync();
