@@ -340,6 +340,8 @@ textarea.inp{min-height:88px;resize:vertical;line-height:1.55}
 .sheet{background:var(--bg-2);border-radius:24px 24px 0 0;width:100%;max-width:640px;max-height:92%;display:flex;flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:var(--shadow), 0 0 0 1px var(--line);position:relative}
 .sheet::before{content:"";position:absolute;top:7px;left:50%;width:36px;height:4px;border-radius:2px;background:var(--line-2);transform:translateX(-50%)}
+.sheet.nudge{animation:sheetNudge .28s ease}
+@keyframes sheetNudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:24px;max-height:86%}.sheet::before{display:none}}
 .sheet-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px 12px}
 .sheet-h h2{margin:0;font-size:18px;letter-spacing:-.015em}
@@ -680,7 +682,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 <div id="flash"></div>
 
 <!-- song editor -->
-<div class="scrim" id="songSheet" hidden>
+<div class="scrim" id="songSheet" data-keep hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="songSheetTitle">
     <div class="sheet-h"><h2 id="songSheetTitle">곡 편집</h2><button class="icon-btn" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="sheet-b">
@@ -2908,7 +2910,13 @@ applyTheme(themePref());
 function openSheet(id){ $('#'+id).hidden=false; }
 function closeSheet(id){ $('#'+id).hidden=true; }
 document.querySelectorAll('.scrim').forEach(sc=>{
-  sc.addEventListener('click', e=>{ if(e.target===sc || e.target.closest('[data-close]')) sc.hidden=true; });
+  sc.addEventListener('click', e=>{
+    if(e.target.closest('[data-close]')){ sc.hidden=true; return; }
+    if(e.target!==sc) return;
+    // 곡 편집 창은 바깥을 눌러도 닫지 않는다(적던 메모·송폼이 날아가지 않게). 닫기·취소·저장으로만 닫힘
+    if(sc.hasAttribute('data-keep')){ const sh=sc.querySelector('.sheet'); sh.classList.remove('nudge'); void sh.offsetWidth; sh.classList.add('nudge'); toast('저장하거나 취소를 눌러 닫아 주세요'); return; }
+    sc.hidden=true;
+  });
 });
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true, 2000); }
 
@@ -3071,7 +3079,7 @@ document.addEventListener('keydown', e=>{
     else if(e.key==='r' || e.key==='R'){ queueSection(P.si); }
     else if((e.key==='Delete' || e.key==='Backspace') && playInk && playInk.sel){ e.preventDefault(); playInk.selDelete(); }
   }
-  if(e.key==='Escape') document.querySelectorAll('.scrim').forEach(s=>s.hidden=true);
+  if(e.key==='Escape') document.querySelectorAll('.scrim:not([data-keep])').forEach(s=>s.hidden=true);
 });
 
 /* 아이패드·아이폰에서 화면이 확대되지 않게: 두 손가락 벌리기(핀치)와 두 번 탭 확대를 막는다.
