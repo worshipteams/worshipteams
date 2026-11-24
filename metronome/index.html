@@ -316,14 +316,8 @@ textarea.inp{min-height:88px;resize:vertical;line-height:1.55}
 .lseg{align-self:flex-start}
 .lseg button{padding:7px 14px;font-size:14px;position:relative}
 .lseg .dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
-.share-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border-radius:14px;padding:10px 12px;box-shadow:0 0 0 1px var(--line)}
-.share-bar:empty{display:none}
-.share-bar .t{flex:1;min-width:180px;font-size:13px;color:var(--muted)}
-.share-bar .t b{color:var(--fg);font-weight:600}
-.share-bar svg{width:18px;height:18px;color:var(--steel);flex:0 0 auto}
 .gpill{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;background:color-mix(in srgb, var(--steel) 14%, transparent);color:var(--steel);margin:2px 4px 0 0;white-space:nowrap}
 .card .by{font-size:12px;color:var(--muted)}
-.card.mine-share{box-shadow:0 0 0 1px var(--line), inset 3px 0 0 var(--steel)}
 .notice{border-radius:14px;padding:16px;background:var(--surface);box-shadow:0 0 0 1px var(--line);display:grid;gap:10px;justify-items:start;color:var(--fg-2);font-size:14px}
 .notice small{color:var(--muted);font-size:12px}
 .gfilter{display:flex;gap:6px;flex-wrap:wrap}
@@ -505,20 +499,12 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 <!-- LISTS -->
 <section class="view" id="v-lists" hidden>
   <div class="wrap" id="listsIndex">
-    <span class="seg lseg" id="listsSeg"><button data-lseg="mine" aria-pressed="true">내 재생목록</button><button data-lseg="shared" aria-pressed="false">그룹 공유<i class="dot" id="sharedDot" hidden></i></button></span>
     <div id="mineIndex" style="display:grid;gap:16px">
       <div class="sec-title">
         <div><h2>재생목록</h2><p>예배별로 부를 곡을 노래 목록에서 골라 담습니다.</p></div>
         <button class="primary" id="newList">+ 새 재생목록</button>
       </div>
       <div class="cards" id="listCards"></div>
-    </div>
-    <div id="sharedIndex" style="display:grid;gap:16px" hidden>
-      <div class="sec-title">
-        <div><h2>그룹 공유 송리스트</h2><p>찬양팀 앱 그룹에 공유된 메트로놈 송리스트입니다. 받으면 곡 설정 그대로 연주할 수 있습니다.</p></div>
-        <button class="ghost" id="sharedReload">새로 고침</button>
-      </div>
-      <div id="sharedBody"></div>
     </div>
   </div>
   <div class="wrap" id="listDetail" hidden>
@@ -528,7 +514,6 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
       <div class="field"><label for="slDate">연주 날짜</label><input class="inp" id="slDate" type="date"></div>
     </div>
     <div class="field"><label for="slMemo">메모</label><input class="inp" id="slMemo" placeholder="예: 인도자, 장소, 특이사항"></div>
-    <div class="share-bar" id="slShareBar"></div>
     <div class="sec-title">
       <div><h2 style="font-size:18px">곡 순서</h2><p id="slSummary"></p></div>
       <div class="toolbar">
@@ -641,23 +626,6 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
   </div>
 </div>
 
-<!-- share to groups -->
-<div class="scrim" id="shareToSheet" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shareToTitle">
-    <div class="sheet-h"><h2 id="shareToTitle">그룹에 공유</h2><button class="icon-btn" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-    <div class="sheet-b" id="shareToBody"></div>
-  </div>
-</div>
-
-<!-- shared list detail -->
-<div class="scrim" id="sharedSheet" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sharedTitle">
-    <div class="sheet-h"><h2 id="sharedTitle">공유 송리스트</h2><button class="icon-btn" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-    <div class="sheet-b" id="sharedSheetBody"></div>
-    <div class="sheet-f" id="sharedSheetFoot"></div>
-  </div>
-</div>
-
 <!-- settings -->
 <div class="scrim" id="settingsSheet" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
@@ -674,7 +642,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 </datalist>
 <div class="toast" id="toast" hidden></div>
 
-<script src="../supabase.js"></script>
+<script src="supabase.js"></script>
 <script>
 (function(){
 'use strict';
@@ -819,7 +787,7 @@ const LS_KEY = 'praise-metronome.v1';
 const DEFAULT_SETTINGS = {click:true, flash:false, countVoice:true, guide:'en', guideCount:true, voiceGender:'m', voicePace:'auto', voiceOffset:0, ritAmount:0.6, accent:true, accVol:1, beatVol:.8, subVol:.65, clickVol:.8, voiceVol:.95, endMode:'stop', sound:'wood'};
 let S = null; // {songs:{}, lists:{}, meta:{settings,cur,u}, synced:{songs:[],lists:[]}, pend:{}}
 
-function blankState(){ return {songs:{}, lists:{}, meta:{settings:{...DEFAULT_SETTINGS}, cur:{list:null, song:null}, u:0}, synced:{songs:[],lists:[]}, pend:{}}; }
+function blankState(){ return {songs:{}, lists:{}, meta:{settings:{...DEFAULT_SETTINGS}, cur:{list:null, song:null}, u:0}, synced:{songs:[],lists:[]}, pend:{}, server:'metronome-1'}; }
 function seedExamples(st){
   const sun = (()=>{ const d=new Date(); d.setDate(d.getDate() + ((7-d.getDay())%7 || 7)); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
   const mk = (id,o) => (st.songs[id] = {id, plays:[], sub:2, countIn:2, key:'', artist:'', ex:true, u:1, ...o});
@@ -838,16 +806,16 @@ let lsTimer=null;
 function saveLocal(){ clearTimeout(lsTimer); lsTimer=setTimeout(()=>{ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} },150); }
 const settings = () => S.meta.settings;
 
-/* ---------- remote sync (Supabase · 찬양팀 앱과 같은 계정) ----------
+/* ---------- remote sync (Supabase · 메트로놈 전용 계정) ----------
    기기에 먼저 저장하고(localStorage) 로그인되어 있으면 Supabase 표 metro_docs로 보낸다.
    인터넷이 끊기거나 서버가 바쁘면 보낼 것을 기기에 쌓아 두었다가 간격을 늘려 가며 다시 보낸다.
-   찬양팀 앱과 같은 주소·같은 저장 키(worship-auth)라서 한쪽에서 로그인하면 다른 쪽도 로그인된다. */
-const SB_URL = 'https://mohlaubqhmdkdbarboxm.supabase.co';
-const SB_KEY = 'sb_publishable_M7kYivBsBMSTN1iR41toqw_C9NTrx1-';
-const EMAIL_DOMAIN = 'users.worshipteam.app';
-const TABLE = 'metro_docs';
+   찬양팀 앱과는 계정·서버가 따로다(2026-11-24 분리). 로그인 저장 키도 metronome-auth로 따로 둔다. */
+const SB_URL = 'https://hqkevnklspswfcsroxxp.supabase.co';
+const SB_KEY = 'sb_publishable_h_GHfbrdW7T2K968k-VVHA_rRGtjDna';
+const EMAIL_DOMAIN = 'users.metronome.app';
+const TABLE = 'metronome_docs';
 const sb = (window.supabase && window.supabase.createClient)
-  ? window.supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:true, autoRefreshToken:true, storageKey:'worship-auth', detectSessionInUrl:false}, realtime:{params:{eventsPerSecond:5}}})
+  ? window.supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:true, autoRefreshToken:true, storageKey:'metronome-auth', detectSessionInUrl:false}, realtime:{params:{eventsPerSecond:5}}})
   : null;
 const Sync = {ready:false, flushing:false, timer:null, retryT:null, retry:0, remoteInit:null, chan:null, uid:null, user:null, name:'', connecting:false};
 function setSyncUI(mode){
@@ -863,7 +831,6 @@ function markDirty(kind, id, op){
   else if(op==='set' && S[kind][id]){ S[kind][id].u = Date.now(); delete S[kind][id].ex; }
   saveLocal();
   clearTimeout(Sync.timer); Sync.timer = setTimeout(flush, 700);
-  if(kind!=='meta') Share.touch(kind, id);
 }
 function retryLater(){
   clearTimeout(Sync.retryT);
@@ -961,13 +928,13 @@ async function connectDb(){
   Sync.connecting = true;
   try{
     const {data:{session}} = await sb.auth.getSession();
-    if(!session){ Sync.uid = null; Sync.user = null; Sync.ready = false; setSyncUI('off'); Share.reset(); return false; }
+    if(!session){ Sync.uid = null; Sync.user = null; Sync.ready = false; setSyncUI('off'); return false; }
     const uid = session.user.id;
     // 이 기기에서 다른 사람이 로그인했으면 앞사람의 곡을 섞지 않고 새로 받는다(앞사람 것은 그 사람 계정에 남아 있다)
     if(S.owner && S.owner!==uid){
       const keep = {...S.meta.settings};
       if(P.playing) stopPlay();
-      S = blankState(); S.meta.settings = keep; TEMP = {}; saveTemp(); Sync.ready = false; Share.reset();
+      S = blankState(); S.meta.settings = keep; TEMP = {}; saveTemp(); Sync.ready = false;
     }
     S.owner = uid;
     Sync.uid = uid; Sync.user = (session.user.email||'').replace('@'+EMAIL_DOMAIN,'');
@@ -977,19 +944,12 @@ async function connectDb(){
     Sync.ready = true; Sync.retry = 0;
     if(!wasReady || !Sync.chan) listen();
     setSyncUI('on'); flush();
-    loadProfile();
-    Share.load();
     return true;
   } finally { Sync.connecting = false; }
-}
-async function loadProfile(){
-  try{ const {data} = await sb.from('profiles').select('display_name,username').eq('id', Sync.uid).maybeSingle();
-    if(data){ Sync.name = data.display_name||''; Sync.user = data.username || Sync.user; renderSettingsIfOpen(); } }catch(e){}
 }
 function disconnectDb(){
   Sync.ready = false; Sync.uid = null; Sync.user = null; Sync.name = '';
   if(Sync.chan){ try{ sb.removeChannel(Sync.chan); }catch(_){} Sync.chan = null; }
-  Share.reset();
   setSyncUI('off');
 }
 // 앱으로 돌아오거나 인터넷이 다시 연결되면 바로 맞춘다(아이폰은 백그라운드에서 연결이 끊긴다)
@@ -1007,7 +967,7 @@ if(sb) sb.auth.onAuthStateChange((ev, session)=>{
 });
 function renderSettingsIfOpen(){ if(!$('#settingsSheet').hidden) renderSettings(); }
 
-/* ---------- 계정(로그인) · 찬양팀 앱 아이디 ---------- */
+/* ---------- 계정(로그인) · 메트로놈 전용 아이디 ---------- */
 let authMode = 'login';
 const korAuth = m => /Invalid login/i.test(m) ? '아이디나 비밀번호가 맞지 않습니다.'
   : /already|exists|사용 중/i.test(m) ? '이미 쓰고 있는 아이디입니다. 다른 아이디를 정해 주세요.'
@@ -1028,11 +988,9 @@ async function authAction(kind){
   authMsg(''); document.querySelectorAll('[data-auth]').forEach(b=>b.disabled=true);
   try{
     if(authMode==='join'){
-      const n = ($('#authName')?.value||'').trim();
-      if(!n) throw new Error('팀에서 보일 이름을 적어 주세요.');
       if(password !== ($('#authPw2')?.value||'')) throw new Error('비밀번호 확인이 맞지 않습니다.');
-      const r = await fetch(`${SB_URL}/functions/v1/signup`, {method:'POST', headers:{'Content-Type':'application/json', apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`},
-        body: JSON.stringify({username:u, password, display_name:n})});
+      const r = await fetch(`${SB_URL}/functions/v1/metronome-signup`, {method:'POST', headers:{'Content-Type':'application/json', apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`},
+        body: JSON.stringify({username:u, password})});
       const j = await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(j.error || '가입하지 못했습니다.');
     }
@@ -1048,11 +1006,10 @@ function accountRows(){
   const join = authMode==='join';
   return `
       <div class="set-row" style="display:grid;gap:10px">
-        <span>찬양팀 앱 아이디로 로그인<small>찬양팀 앱과 같은 계정입니다. 로그인하면 곡·재생목록·설정이 계정에 저장되어, 컴퓨터든 휴대폰이든 같은 아이디로 로그인하면 똑같이 보입니다. 그룹에 송리스트도 공유할 수 있습니다. 로그인하지 않으면 이 기기에만 저장됩니다.</small></span>
+        <span>메트로놈 계정으로 로그인<small>메트로놈 전용 계정입니다(찬양팀 앱 계정과 따로). 로그인하면 곡·재생목록·설정이 계정에 저장되어, 컴퓨터든 휴대폰이든 같은 아이디로 로그인하면 똑같이 보입니다. 처음이면 「회원가입」에서 아이디를 만드세요. 로그인하지 않으면 이 기기에만 저장됩니다.</small></span>
         <span class="seg" style="justify-self:start"><button type="button" data-auth="mode-login" aria-pressed="${!join}">로그인</button><button type="button" data-auth="mode-join" aria-pressed="${join}">회원가입</button></span>
         <form id="authForm" style="display:grid;gap:8px" autocomplete="on">
           <input class="inp" id="authId" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="아이디 (영문 소문자·숫자·_ 3~20자)">
-          ${join ? '<input class="inp" id="authName" autocomplete="name" maxlength="20" placeholder="이름 (팀에서 보일 이름)">' : ''}
           <input class="inp" id="authPw" type="password" autocomplete="${join?'new-password':'current-password'}" placeholder="비밀번호 (6자 이상)">
           ${join ? '<input class="inp" id="authPw2" type="password" autocomplete="new-password" placeholder="비밀번호 확인">' : ''}
           <p class="hint danger" id="authErr" hidden></p>
@@ -1062,123 +1019,6 @@ function accountRows(){
       </div>`;
 }
 document.addEventListener('submit', e=>{ if(e.target.id==='authForm'){ e.preventDefault(); authAction('submit'); } });
-
-/* ---------- 그룹 공유 송리스트 (찬양팀 앱 그룹) ----------
-   재생목록을 그룹에 공유하면 그 안의 곡 설정(BPM·박자·분할·카운트인·송폼) 사본을 metro_shares에 올린다.
-   공유한 재생목록이나 곡을 고치면 자동으로 공유본도 바뀐다.
-   그룹원은 공유 송리스트를 받아 연주한다. 받아 둔 것은 공유한 사람이 고치면 자동으로 새 내용으로 바뀐다. */
-const Share = {
-  groups:[], rows:[], loaded:false, loading:false, err:'', chan:null, dirty:new Set(), timer:null, loadT:null, gid:null,
-  reset(){ this.groups=[]; this.rows=[]; this.loaded=false; this.err=''; this.dirty.clear(); clearTimeout(this.timer);
-    if(this.chan){ try{ sb.removeChannel(this.chan); }catch(_){} this.chan=null; } },
-  mine(listId){ return this.rows.filter(r=>r.owner_id===Sync.uid && r.list_id===listId); },
-  canRemove(r){ if(r.owner_id===Sync.uid) return true; const g=this.groups.find(x=>x.id===r.group_id); return !!(g && g.manage); },
-  // 공유본이 있는 재생목록(또는 그 안의 곡)이 바뀌면 묶어서 다시 올린다
-  touch(kind, id){
-    if(!Sync.uid || !this.rows.length) return;
-    const lists = kind==='lists' ? [id] : Object.values(S.lists).filter(l=>l.songs.includes(id)).map(l=>l.id);
-    lists.forEach(lid=>{ if(this.mine(lid).length) this.dirty.add(lid); });
-    if(this.dirty.size){ clearTimeout(this.timer); this.timer=setTimeout(()=>this.pushDirty(), 2500); }
-  },
-  async pushDirty(){
-    if(!Sync.ready){ this.timer=setTimeout(()=>this.pushDirty(), 5000); return; }
-    const ids=[...this.dirty]; this.dirty.clear();
-    for(const lid of ids){
-      const l = S.lists[lid], mine = this.mine(lid);
-      try{
-        if(!l){ for(const r of mine) await sb.from('metro_shares').delete().eq('id', r.id); continue; }
-        for(const r of mine) await this.publish(lid, r.group_id, true);
-      }catch(e){ this.dirty.add(lid); this.timer=setTimeout(()=>this.pushDirty(), 8000 + Math.random()*4000); }
-    }
-  },
-  snapshot(l){
-    return l.songs.filter(id=>S.songs[id]).slice(0,60).map(id=>{ const s=S.songs[id];
-      return {id:s.id, title:s.title||'', artist:s.artist||'', bpm:s.bpm, ts:s.ts, key:s.key||'', sub:s.sub, countIn:s.countIn|0, form:s.form||''}; });
-  },
-  async publish(listId, groupId, quiet){
-    const l = S.lists[listId]; if(!l || !Sync.ready) throw new Error('로그인 후 공유할 수 있습니다');
-    const row = {group_id:groupId, owner_id:Sync.uid, list_id:listId, name:(l.name||'이름 없는 재생목록').slice(0,100), date:(l.date||'').slice(0,20), memo:(l.memo||'').slice(0,500), songs:this.snapshot(l)};
-    const {data, error} = await sb.from('metro_shares').upsert(row, {onConflict:'group_id,owner_id,list_id'}).select('id,group_id,owner_id,list_id,name,date,memo,songs,updated_at').single();
-    if(error) throw error;
-    data.owner = {display_name:Sync.name, username:Sync.user};
-    const i = this.rows.findIndex(r=>r.id===data.id); if(i>=0) this.rows[i]=data; else this.rows.unshift(data);
-    if(!quiet) renderSharedIfOpen();
-    return data;
-  },
-  async unpublish(shareId){
-    const {error} = await sb.from('metro_shares').delete().eq('id', shareId); if(error) throw error;
-    this.rows = this.rows.filter(r=>r.id!==shareId); renderSharedIfOpen();
-  },
-  async load(){
-    if(!Sync.uid || this.loading) return;
-    this.loading = true; this.err='';
-    try{
-      const {data:mem, error:e1} = await sb.from('members').select('group_id,positions,groups(id,name,owner_id)').eq('user_id', Sync.uid).eq('status','active');
-      if(e1) throw e1;
-      this.groups = (mem||[]).filter(m=>m.groups).map(m=>({id:m.groups.id, name:m.groups.name,
-        manage: m.groups.owner_id===Sync.uid || (m.positions||[]).some(p=>p==='워십리더'||p==='사역자')})).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
-      if(this.gid && !this.groups.some(g=>g.id===this.gid)) this.gid=null;
-      const gids = this.groups.map(g=>g.id);
-      if(gids.length){
-        const {data, error} = await sb.from('metro_shares').select('id,group_id,owner_id,list_id,name,date,memo,songs,updated_at,owner:profiles!metro_shares_owner_id_fkey(display_name,username)')
-          .in('group_id', gids).order('updated_at', {ascending:false}).limit(150);
-        if(error) throw error;
-        this.rows = data||[];
-      } else this.rows = [];
-      this.loaded = true;
-      this.listen(gids);
-      this.syncImported();
-    }catch(e){ this.err = navigator.onLine===false ? '오프라인이라 공유 송리스트를 불러오지 못했습니다.' : '공유 송리스트를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.'; }
-    finally{ this.loading=false; renderSharedIfOpen(); }
-  },
-  listen(gids){
-    if(this.chan){ try{ sb.removeChannel(this.chan); }catch(_){} this.chan=null; }
-    if(!gids.length) return;
-    this.chan = sb.channel('metro-shares-'+Sync.uid)
-      .on('postgres_changes', {event:'*', schema:'public', table:'metro_shares', filter:`group_id=in.(${gids.slice(0,100).join(',')})`}, ()=>{
-        clearTimeout(this.loadT); this.loadT = setTimeout(()=>this.load(), 800 + Math.random()*1200); })
-      .on('postgres_changes', {event:'DELETE', schema:'public', table:'metro_shares'}, p=>{
-        const id = p.old && p.old.id; if(id && this.rows.some(r=>r.id===id)){ this.rows=this.rows.filter(r=>r.id!==id); renderSharedIfOpen(); } })
-      .subscribe();
-  },
-  // 받아 둔 공유 송리스트가 바뀌었으면 새 내용으로 맞춘다(연주 중인 목록은 멈춘 뒤에)
-  syncImported(){
-    let changed=false;
-    Object.values(S.lists).forEach(l=>{
-      if(!l.src || !l.src.share) return;
-      const r = this.rows.find(x=>x.id===l.src.share); if(!r) return;
-      if(new Date(r.updated_at).getTime() <= (l.src.at||0)) return;
-      if(P.playing && P.listId===l.id){ P.pendingShare = true; return; }
-      importShare(r, true); changed=true;
-    });
-    if(changed) scheduleRender();
-  }
-};
-// 공유 송리스트를 내 노래 목록·재생목록으로 받는다.
-// 같은 곡(공유한 사람이 같은 곡, 또는 제목·아티스트가 같은 곡)이 있으면 그 곡을 공유한 설정으로 맞춘다.
-function importShare(r, quiet){
-  const own = r.owner_id===Sync.uid;
-  if(own && S.lists[r.list_id]) return r.list_id;
-  const ids = [];
-  (r.songs||[]).forEach(s=>{
-    const src = r.owner_id+':'+s.id;
-    let local = Object.values(S.songs).find(x=>x.src===src)
-      || Object.values(S.songs).find(x=>(x.title||'').trim().toLowerCase()===(s.title||'').trim().toLowerCase() && (x.artist||'').trim().toLowerCase()===(s.artist||'').trim().toLowerCase());
-    const perf = {title:s.title||'제목 없음', artist:s.artist||'', bpm:clamp(+s.bpm||72,30,260), ts:TS[s.ts]?s.ts:'4/4', key:s.key||'', sub:fixSub(TS[s.ts]?s.ts:'4/4', +s.sub||2), countIn:clamp(s.countIn|0,0,2), form:String(s.form||'')};
-    if(local){
-      const diff = Object.keys(perf).some(k=>JSON.stringify(local[k])!==JSON.stringify(perf[k])) || local.src!==src;
-      if(diff){ Object.assign(local, perf, {src}); markDirty('songs', local.id); }
-    } else { local = {id:uid(), plays:[], ...perf, src}; S.songs[local.id]=local; markDirty('songs', local.id); }
-    ids.push(local.id);
-  });
-  const lid = 'sh-'+r.id;
-  const l = S.lists[lid] || {id:lid, songs:[]};
-  Object.assign(l, {id:lid, name:r.name||'공유 송리스트', date:r.date||'', memo:r.memo||'', songs:ids, src:{share:r.id, owner:r.owner_id, group:r.group_id, by:r.owner?.display_name||'', at:new Date(r.updated_at).getTime()||Date.now()}});
-  S.lists[lid] = l; markDirty('lists', lid);
-  ids.forEach(id=>clearTemp(id, lid));
-  if(!quiet) toast('내 재생목록에 받았습니다');
-  return lid;
-}
 
 /* ---------- 앱 설치 (PWA) ----------
    안드로이드·윈도우 크롬/엣지: 브라우저가 주는 설치 창(beforeinstallprompt)을 띄운다.
@@ -1482,7 +1322,6 @@ function stopPlay(){
   P.events=[]; releaseWake(); setFlash(false);
   renderTransport(); renderIdle(); renderForm();
   if(P.pendingRemote){ P.pendingRemote=false; scheduleRender(); }
-  if(P.pendingShare){ P.pendingShare=false; setTimeout(()=>Share.syncImported(), 300); }
 }
 /* 스케줄러 시계: 화면(메인 스레드) 타이머 대신 워커 타이머로 25ms마다 깨운다.
    워커 타이머는 화면이 바쁘거나 앱이 뒤로 가도 덜 밀린다. 워커를 못 쓰면 일반 타이머로 대신한다. */
@@ -1910,14 +1749,10 @@ function renderLists(){
   const detail = openListId && S.lists[openListId];
   $('#listsIndex').hidden = !!detail; $('#listDetail').hidden = !detail;
   if(!detail){
-    document.querySelectorAll('[data-lseg]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.lseg===listSeg)));
-    $('#mineIndex').hidden = listSeg!=='mine'; $('#sharedIndex').hidden = listSeg!=='shared';
-    updateSharedDot();
-    if(listSeg==='shared'){ renderShared(); return; }
     const lists = sortedLists();
     $('#listCards').innerHTML = lists.length ? lists.map(l=>{
       const songs = l.songs.map(id=>S.songs[id]).filter(Boolean);
-      return `<button class="card" data-openlist="${esc(l.id)}"><span class="d">${esc(fmtDate(l.date)||'날짜 없음')}</span><h3>${esc(l.name||'이름 없는 재생목록')} ${l.ex?'<span class="badge">예시</span>':''}${l.src&&l.src.share?'<span class="badge tmp">공유받음</span>':Share.mine(l.id).length?'<span class="badge tmp">공유 중</span>':''}</h3>${l.memo?`<p>${esc(l.memo)}</p>`:''}<ol>${songs.slice(0,5).map(s=>`<li>${esc(s.title)}</li>`).join('')}${songs.length>5?`<li>외 ${songs.length-5}곡</li>`:''}</ol>${songs.length?'':'<p>곡을 담아 주세요</p>'}</button>`;
+      return `<button class="card" data-openlist="${esc(l.id)}"><span class="d">${esc(fmtDate(l.date)||'날짜 없음')}</span><h3>${esc(l.name||'이름 없는 재생목록')} ${l.ex?'<span class="badge">예시</span>':''}</h3>${l.memo?`<p>${esc(l.memo)}</p>`:''}<ol>${songs.slice(0,5).map(s=>`<li>${esc(s.title)}</li>`).join('')}${songs.length>5?`<li>외 ${songs.length-5}곡</li>`:''}</ol>${songs.length?'':'<p>곡을 담아 주세요</p>'}</button>`;
     }).join('') : `<div class="empty"><span>아직 재생목록이 없습니다.</span><button class="primary" data-newlist="1">첫 재생목록 만들기</button></div>`;
     return;
   }
@@ -1925,7 +1760,6 @@ function renderLists(){
   if(document.activeElement!==$('#slName')) $('#slName').value = l.name||'';
   if(document.activeElement!==$('#slDate')) $('#slDate').value = l.date||'';
   if(document.activeElement!==$('#slMemo')) $('#slMemo').value = l.memo||'';
-  renderShareBar(l);
   const songs = l.songs.filter(id=>S.songs[id]);
   const totalSec = songs.reduce((a,id)=>{ const s=eff(id, l.id); const b=formBars(parseForm(s.form).items); return a + (b? b*(TS[s.ts]?.beats||4)*60/(s.bpm||60) : 0); },0);
   $('#slSummary').textContent = songs.length ? `${songs.length}곡${totalSec? ` · 송폼 기준 약 ${Math.round(totalSec/60)}분`:''}` : '노래 목록에서 곡을 골라 담으세요.';
@@ -1937,92 +1771,6 @@ function renderLists(){
         <button data-editsong="${esc(id)}" data-ctx="${esc(l.id)}" aria-label="이 재생목록에서 임시로 곡 설정 바꾸기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
         <button data-rm="${i}" aria-label="재생목록에서 빼기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div></div>`; }).join('') : '';
-}
-/* shared (group) lists */
-let listSeg = 'mine', sharedFilter = null, sharedOpenId = null, shareToList = null, shareBusy = false;
-const SVG_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.3 10.8 7.4-3.6M8.3 13.2l7.4 3.6"/></svg>';
-const gname = gid => (Share.groups.find(g=>g.id===gid)||{}).name || '그룹';
-const importedOf = r => Object.values(S.lists).find(l=>l.src && l.src.share===r.id);
-function shareState(r){
-  if(r.owner_id===Sync.uid) return 'own';
-  const l = importedOf(r); if(!l) return 'new';
-  return new Date(r.updated_at).getTime() > (l.src.at||0) ? 'updated' : 'got';
-}
-function updateSharedDot(){ $('#sharedDot').hidden = !Share.rows.some(r=>shareState(r)==='new'); }
-function renderSharedIfOpen(){
-  updateSharedDot();
-  if(currentView==='lists' && !openListId && listSeg==='shared') renderShared();
-  if(currentView==='lists' && openListId) renderShareBar(S.lists[openListId]);
-  if(!$('#sharedSheet').hidden && sharedOpenId) renderSharedSheet();
-  if(!$('#shareToSheet').hidden && shareToList) renderShareTo();
-}
-function renderShared(){
-  const box = $('#sharedBody');
-  if(!sb){ box.innerHTML = `<div class="notice">인터넷에 연결되면 공유 송리스트를 볼 수 있습니다.</div>`; return; }
-  if(!Sync.uid){ box.innerHTML = `<div class="notice"><span><b>찬양팀 앱 아이디로 로그인</b>하면 그룹에 공유된 송리스트를 받고, 내 재생목록도 그룹에 공유할 수 있습니다.</span><button class="primary" data-openlogin="1">로그인</button></div>`; return; }
-  if(!Share.loaded){ box.innerHTML = `<div class="notice">${esc(Share.err || '불러오는 중…')}${Share.err?'<button class="ghost" data-sharereload="1">다시 시도</button>':''}</div>`; return; }
-  if(!Share.groups.length){ box.innerHTML = `<div class="notice"><span>아직 속한 그룹이 없습니다. <b>찬양팀 앱</b>에서 그룹을 만들거나 초대·가입 요청으로 들어가면 그 그룹에 송리스트를 공유할 수 있습니다.</span><a class="ghost" href="../" style="text-decoration:none">찬양팀 앱 열기</a></div>`; return; }
-  const rows = Share.rows.filter(r=>!sharedFilter || r.group_id===sharedFilter)
-    .sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.updated_at||'').localeCompare(a.updated_at||''));
-  const filt = Share.groups.length>1 ? `<div class="gfilter"><button data-gfilter="" aria-pressed="${!sharedFilter}">전체</button>${Share.groups.map(g=>`<button data-gfilter="${esc(g.id)}" aria-pressed="${sharedFilter===g.id}">${esc(g.name)}</button>`).join('')}</div>` : '';
-  const err = Share.err ? `<p class="hint danger">${esc(Share.err)}</p>` : '';
-  box.innerHTML = filt + err + (rows.length ? `<div class="cards">${rows.map(r=>{
-    const st = shareState(r), songs = r.songs||[];
-    const badge = st==='own' ? '<span class="badge tmp">내가 공유</span>' : st==='new' ? '<span class="badge">새 송리스트</span>' : st==='updated' ? '<span class="badge">새 내용</span>' : '<span class="badge tmp">받음</span>';
-    return `<button class="card${st==='own'?' mine-share':''}" data-share="${esc(r.id)}"><span class="d">${esc(fmtDate(r.date)||'날짜 없음')}</span><h3>${esc(r.name||'이름 없는 송리스트')} ${badge}</h3>
-      <span class="by"><span class="gpill">${esc(gname(r.group_id))}</span>${esc(st==='own' ? '내가 공유함' : (r.owner?.display_name||'팀원')+' 님이 공유')}</span>
-      <ol>${songs.slice(0,5).map(s=>`<li>${esc(s.title)} <span style="color:var(--muted)">${s.bpm}</span></li>`).join('')}${songs.length>5?`<li>외 ${songs.length-5}곡</li>`:''}</ol>${songs.length?'':'<p>곡이 없습니다</p>'}</button>`; }).join('')}</div>`
-    : `<div class="empty"><span>아직 공유된 송리스트가 없습니다. 내 재생목록을 열고 <b>그룹에 공유</b>를 눌러 보세요.</span></div>`);
-}
-function renderSharedSheet(){
-  const r = Share.rows.find(x=>x.id===sharedOpenId);
-  if(!r){ closeSheet('sharedSheet'); return; }
-  const st = shareState(r), songs = r.songs||[];
-  $('#sharedTitle').textContent = r.name || '공유 송리스트';
-  const meta = [fmtDate(r.date), gname(r.group_id), st==='own' ? '내가 공유함' : (r.owner?.display_name||'팀원')+' 님이 공유'].filter(Boolean).join(' · ');
-  const tot = songs.reduce((a,s)=>{ const b=formBars(parseForm(s.form).items); return a + (b ? b*(TS[s.ts]?.beats||4)*60/(s.bpm||60) : 0); },0);
-  $('#sharedSheetBody').innerHTML = `<p class="hint" style="font-size:13px">${esc(meta)}${r.memo?`<br>${esc(r.memo)}`:''}</p>
-    <div class="rows">${songs.map((s,i)=>`<div class="row"><span class="n">${i+1}</span><div class="t"><b>${esc(s.title||'제목 없음')}</b><small>${esc([s.artist, s.bpm+' BPM', s.ts, s.key, s.form ? '송폼 '+parseForm(s.form).items.length+'파트' : '송폼 없음'].filter(Boolean).join(' · '))}</small></div></div>`).join('') || '<p class="hint">곡이 없습니다.</p>'}</div>
-    <p class="hint">${songs.length}곡${tot?` · 송폼 기준 약 ${Math.round(tot/60)}분`:''}</p>
-    ${st==='own' ? '<p class="hint">내 재생목록을 고치면 이 공유본도 자동으로 바뀝니다.</p>'
-      : `<p class="hint">받으면 공유한 사람의 곡 설정(BPM·박자·송폼 등)으로 내 노래 목록에 들어갑니다. 같은 곡이 이미 있으면 그 곡을 공유한 설정으로 맞춥니다. 공유한 사람이 나중에 고치면 받아 둔 송리스트도 자동으로 바뀝니다.</p>`}`;
-  const rm = Share.canRemove(r) ? `<button class="ghost danger" data-shareunpub="${esc(r.id)}">${st==='own'?'공유 그만하기':'그룹에서 내리기'}</button>` : '<span></span>';
-  const act = st==='own'
-    ? `<button class="primary" data-shareplay="${esc(r.id)}">이 송리스트로 연주</button>`
-    : `<span style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" data-shareimp="${esc(r.id)}">${st==='new'?'내 재생목록에 받기':st==='updated'?'새 내용 받기':'다시 받기'}</button><button class="primary" data-shareplay="${esc(r.id)}">받아서 연주</button></span>`;
-  $('#sharedSheetFoot').innerHTML = rm + act;
-}
-function renderShareBar(l){
-  const bar = $('#slShareBar'); if(!bar) return;
-  if(!l){ bar.innerHTML=''; return; }
-  if(l.src && l.src.share){
-    bar.innerHTML = `${SVG_SHARE}<span class="t"><b>${esc(l.src.by||'팀원')}</b> 님이 <b>${esc(gname(l.src.group))}</b>에 공유한 송리스트입니다. 공유한 사람이 고치면 자동으로 새 내용으로 바뀌니, 내 방식으로 고쳐 쓰려면 새 재생목록에 곡을 담아 쓰세요.</span>`;
-    return;
-  }
-  if(!Sync.uid){ bar.innerHTML = `${SVG_SHARE}<span class="t">찬양팀 앱 아이디로 로그인하면 이 재생목록을 그룹에 공유할 수 있습니다.</span><button class="ghost" data-openlogin="1">로그인</button>`; return; }
-  const mine = Share.mine(l.id);
-  bar.innerHTML = `${SVG_SHARE}<span class="t">${mine.length ? `<b>공유 중</b> ${mine.map(r=>`<span class="gpill">${esc(gname(r.group_id))}</span>`).join('')}<br>고치면 공유본도 자동으로 바뀝니다.` : '그룹에 공유하면 팀원이 이 송리스트를 곡 설정 그대로 받아 연주할 수 있습니다.'}</span><button class="${mine.length?'ghost':'primary sm'}" data-openshareto="${esc(l.id)}">${mine.length?'공유 설정':'그룹에 공유'}</button>`;
-}
-function renderShareTo(){
-  const l = S.lists[shareToList]; const body = $('#shareToBody');
-  if(!l){ closeSheet('shareToSheet'); return; }
-  if(!Share.loaded){ body.innerHTML = `<p class="hint">${esc(Share.err||'그룹을 불러오는 중…')}</p>`; return; }
-  if(!Share.groups.length){ body.innerHTML = `<div class="notice"><span>속한 그룹이 없습니다. 찬양팀 앱에서 그룹을 만들거나 들어가면 공유할 수 있습니다.</span><a class="ghost" href="../" style="text-decoration:none">찬양팀 앱 열기</a></div>`; return; }
-  const n = l.songs.filter(id=>S.songs[id]).length;
-  body.innerHTML = `<p class="hint" style="font-size:13px">「${esc(l.name||'이름 없는 재생목록')}」 · ${n}곡을 공유할 그룹을 켜 주세요. 같은 그룹원 모두가 볼 수 있습니다.</p>
-    <div class="rows">${Share.groups.map(g=>{ const on = Share.mine(l.id).some(r=>r.group_id===g.id);
-      return `<button class="row click" role="switch" aria-checked="${on}" data-shareto="${esc(g.id)}" ${shareBusy?'disabled':''}><span class="t"><b>${esc(g.name)}</b><small>${on?'공유 중 · 누르면 공유를 그만둡니다':'누르면 공유합니다'}</small></span><span class="sw"></span></button>`; }).join('')}</div>
-    ${n ? '' : '<p class="hint danger">곡이 없는 재생목록입니다. 곡을 담은 뒤 공유하세요.</p>'}`;
-}
-async function toggleShareTo(gid){
-  const l = S.lists[shareToList]; if(!l || shareBusy) return;
-  const cur = Share.mine(l.id).find(r=>r.group_id===gid);
-  shareBusy = true; renderShareTo();
-  try{
-    if(cur){ await Share.unpublish(cur.id); toast(`${gname(gid)} 공유를 그만뒀습니다`); }
-    else { await Share.publish(l.id, gid); toast(`${gname(gid)}에 공유했습니다`); }
-  }catch(e){ toast(navigator.onLine===false ? '오프라인입니다. 인터넷 연결 후 다시 눌러 주세요.' : '공유하지 못했습니다. 잠시 뒤 다시 눌러 주세요.'); }
-  finally{ shareBusy = false; renderShareTo(); renderShareBar(S.lists[openListId]); }
 }
 function newList(){
   const id = uid();
@@ -2434,18 +2182,7 @@ document.addEventListener('click', e=>{
     const ins = (before && !/[\s,]$/.test(before) ? ' ' : '') + `[${d.cuechip}]` + (after && !/^[\s,]/.test(after) ? ' ' : '');
     ta.value = before + ins + after; ta.focus(); const np = (before+ins).length; try{ ta.setSelectionRange(np,np); }catch(e){} renderEditorPreview(); return; }
   if(d.install){ doInstall(); return; }
-  if(d.lseg){ listSeg=d.lseg; renderLists(); if(listSeg==='shared' && Sync.uid && !Share.loading) Share.load(); return; }
-  if(d.gfilter!=null){ sharedFilter = d.gfilter || null; renderShared(); return; }
-  if(d.sharereload){ Share.load(); renderShared(); return; }
   if(d.openlogin){ authMode='login'; renderSettings(); openSheet('settingsSheet'); setTimeout(()=>$('#authId')?.focus(),40); return; }
-  if(d.share){ sharedOpenId=d.share; renderSharedSheet(); openSheet('sharedSheet'); return; }
-  if(d.shareimp){ const r=Share.rows.find(x=>x.id===d.shareimp); if(r){ importShare(r); renderSharedSheet(); renderShared(); scheduleRender(); } return; }
-  if(d.shareplay){ const r=Share.rows.find(x=>x.id===d.shareplay); if(!r) return; const lid=importShare(r, true); if(!lid || !S.lists[lid]){ toast('재생목록을 찾지 못했습니다'); return; }
-    if(P.playing) stopPlay(); S.meta.cur.list=lid; S.meta.cur.song=queueIds()[0]||null; P.startIdx=0; markDirty('meta'); closeSheet('sharedSheet'); showView('play'); return; }
-  if(d.shareunpub){ if(!t.dataset.arm){ t.dataset.arm='1'; const lb=t.textContent; t.textContent='한 번 더 누르면 내립니다'; setTimeout(()=>{ t.dataset.arm=''; t.textContent=lb; },3000); return; }
-    Share.unpublish(d.shareunpub).then(()=>{ closeSheet('sharedSheet'); toast('공유를 내렸습니다'); renderShared(); }).catch(()=>toast('내리지 못했습니다. 잠시 뒤 다시 눌러 주세요.')); return; }
-  if(d.openshareto){ shareToList=d.openshareto; renderShareTo(); openSheet('shareToSheet'); if(!Share.loaded) Share.load(); return; }
-  if(d.shareto){ toggleShareTo(d.shareto); return; }
   if(d.fbmode){ setFormMode(d.fbmode); return; }
   if(d.chip && fbMode==='blocks'){ fbAdd(d.chip); return; }
   if(d.fbdel!=null){ FB.splice(+d.fbdel,1); fbCueOpen=-1; renderBlocks(); fbSync(); return; }
@@ -2488,7 +2225,6 @@ document.addEventListener('keydown', e=>{ if(e.key==='Enter' && e.target.id==='f
 document.addEventListener('focusin', e=>{ const ds=e.target.dataset||{}; if(ds.fbbarsin!=null||ds.fbrep!=null){ try{ e.target.select(); }catch(_){} } });
 $('#fTs').addEventListener('change', ()=>{ fillSubOptions($('#fTs').value, +$('#fSub').value); renderEditorPreview(); });
 $('#newList').addEventListener('click', newList);
-$('#sharedReload').addEventListener('click', ()=>{ if(Sync.uid){ Share.load(); renderShared(); } else renderShared(); });
 $('#backToLists').addEventListener('click', ()=>{ openListId=null; renderLists(); });
 $('#slAddFromLib').addEventListener('click', openPicker);
 $('#slAddNew').addEventListener('click', ()=>openSongEditor(null, openListId));
@@ -2525,6 +2261,9 @@ document.addEventListener('keydown', e=>{
   S.meta.settings = {...DEFAULT_SETTINGS, ...(S.meta.settings||{})};
   loadVoices(voiceGender());
   S.synced = S.synced || {songs:[],lists:[]}; S.pend = S.pend || {};
+  // 2026-11-24 찬양팀 앱 서버 → 메트로놈 전용 서버로 옮김. 옛 서버에 올렸던 기록·주인 표시를 지워서
+  // 새 계정에 로그인하면 이 기기의 곡·재생목록이 그대로 올라가게 한다(지우지 않는다).
+  if(S.server !== 'metronome-1'){ S.synced = {songs:[],lists:[]}; delete S.owner; S.server = 'metronome-1'; saveLocal(); }
   if(!local){ seedExamples(S); }
   Object.values(S.lists).forEach(l=>{ if(l.over){ migrateOver(l); S.pend['lists/'+l.id]='set'; } });
   fixCurrent();
