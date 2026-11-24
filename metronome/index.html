@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>찬양팀 메트로놈</title>
+<title>드러머트로놈 · Drummertronome</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="메트로놈">
+<meta name="apple-mobile-web-app-title" content="드러머트로놈">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0A0C12" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
@@ -528,7 +528,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 <body>
 
 <header class="top">
-  <div class="brand"><svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="8" fill="var(--accent)"/><path d="M9 20.5 12.3 6h1.4L17 20.5z" fill="none" stroke="var(--accent-ink)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 16.5 18.5 9" stroke="var(--accent-ink)" stroke-width="1.6" stroke-linecap="round"/><circle cx="17.4" cy="10.5" r="1.6" fill="var(--accent-ink)"/></svg><span>찬양팀 메트로놈</span></div>
+  <div class="brand"><svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="8" fill="var(--accent)"/><path d="M9 20.5 12.3 6h1.4L17 20.5z" fill="none" stroke="var(--accent-ink)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 16.5 18.5 9" stroke="var(--accent-ink)" stroke-width="1.6" stroke-linecap="round"/><circle cx="17.4" cy="10.5" r="1.6" fill="var(--accent-ink)"/></svg><span title="Drummertronome · 드러머를 위한 메트로놈">드러머트로놈</span></div>
   <nav class="tabs" role="tablist" aria-label="화면">
     <button role="tab" id="tab-play" data-view="play" aria-selected="true">연주</button>
     <button role="tab" id="tab-lists" data-view="lists" aria-selected="false">재생목록</button>
@@ -1146,7 +1146,7 @@ function accountRows(){
   const join = authMode==='join';
   return `
       <div class="set-row" style="display:grid;gap:10px">
-        <span>메트로놈 계정으로 로그인<small>메트로놈 전용 계정입니다(찬양팀 앱 계정과 따로). 로그인하면 곡·재생목록·설정이 계정에 저장되어, 컴퓨터든 휴대폰이든 같은 아이디로 로그인하면 똑같이 보입니다. 처음이면 「회원가입」에서 아이디를 만드세요. 로그인하지 않으면 이 기기에만 저장됩니다.</small></span>
+        <span>드러머트로놈 계정으로 로그인<small>드러머트로놈 전용 계정입니다(찬양팀 앱 계정과 따로). 로그인하면 곡·재생목록·설정이 계정에 저장되어, 컴퓨터든 휴대폰이든 같은 아이디로 로그인하면 똑같이 보입니다. 처음이면 「회원가입」에서 아이디를 만드세요. 로그인하지 않으면 이 기기에만 저장됩니다.</small></span>
         <span class="seg" style="justify-self:start"><button type="button" data-auth="mode-login" aria-pressed="${!join}">로그인</button><button type="button" data-auth="mode-join" aria-pressed="${join}">회원가입</button></span>
         <form id="authForm" style="display:grid;gap:8px" autocomplete="on">
           <input class="inp" id="authId" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="아이디 (영문 소문자·숫자·_ 3~20자)">
