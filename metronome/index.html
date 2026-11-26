@@ -257,7 +257,21 @@ button[disabled]{cursor:default}
 .ghost:hover{background:var(--raise);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
 .ghost[disabled]{opacity:.4;pointer-events:none}
 
-.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick{display:flex;flex-direction:column;gap:8px}
+.quick-s{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* 송폼·가이드 음성: 연주 중에 자주 누르므로 큰 버튼 두 개를 나란히 둔다 */
+.bigtogs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bigtog{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:3px;min-height:66px;padding:10px 14px;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1.5px var(--line-2);text-align:left;color:var(--muted);transition:background .15s, box-shadow .15s}
+.bigtog .bt{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bigtog b{font-size:16px;font-weight:800;color:var(--fg);letter-spacing:-.01em}
+.bigtog em{font-style:normal;font-size:11.5px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line-2)}
+.bigtog small{font-size:12px;font-weight:600;line-height:1.3}
+.bigtog[aria-pressed="true"]{background:var(--accent-soft);box-shadow:0 0 0 1.5px var(--accent)}
+.bigtog[aria-pressed="true"] em{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.bigtog[aria-pressed="false"]{box-shadow:0 0 0 1.5px var(--danger)}
+.bigtog[aria-pressed="false"] em{color:var(--danger);box-shadow:inset 0 0 0 1px var(--danger)}
+.bigtog:disabled{opacity:.45;box-shadow:0 0 0 1px var(--line);background:var(--surface)}
+.bigtog:disabled em{display:none}
 .tog{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:14px;background:var(--surface);box-shadow:0 0 0 1px var(--line);font-size:14px;font-weight:600;color:var(--muted);text-align:left}
 .tog i{width:34px;height:20px;border-radius:999px;background:var(--surface-2);position:relative;flex:0 0 auto;box-shadow:inset 0 0 0 1px var(--line-2);transition:background .15s}
 .tog i::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .15s, background .15s}
@@ -488,7 +502,12 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
   .hud .song-head h1{font-size:19px}
   .now.compact{padding:10px 14px;align-self:stretch}
   .now.compact .secname{font-size:clamp(28px, calc(100dvh * .045), 44px)}
-  .quick{grid-template-columns:1fr;gap:5px;align-content:stretch}
+  .quick{gap:6px;justify-content:stretch}
+  .quick .bigtogs{grid-template-columns:1fr;gap:6px}
+  .quick .bigtog{min-height:54px;padding:8px 11px;border-radius:13px;gap:2px}
+  .quick .bigtog b{font-size:14.5px}
+  .quick .bigtog small{font-size:11px}
+  .quick .quick-s{grid-template-columns:1fr;gap:5px}
   .quick .tog{padding:6px 10px;font-size:12px;border-radius:11px;gap:6px}
   .quick .tog i{width:28px;height:16px}
   .quick .tog i::after{width:10px;height:10px}
@@ -512,7 +531,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
   .play-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto minmax(0,1fr);
     grid-template-areas:"bar bar" "hud form" "hud now" "hud tog" "ink ink"}
   .hud{--dial:clamp(140px, 20vw, 200px);overflow:visible}
-  .quick{grid-template-columns:1fr 1fr}
+  .quick .bigtogs, .quick .quick-s{grid-template-columns:1fr 1fr}
   #formPanel .formline{max-height:none}
 }
 @media (max-width:640px){ .brand span{display:none} .tabs{margin-inline:0} }
@@ -596,13 +615,18 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
         <div class="bars" id="barsMeter"></div>
         <div class="next" id="nextRow"></div>
       </div>
-      <div class="quick" id="quick"></div>
+      <div class="quick">
+        <div class="bigtogs">
+          <button class="bigtog" id="followBtn" aria-pressed="true"><span class="bt"><b>송폼</b><em>ON</em></span><small>파트 따라가는 중</small></button>
+          <button class="bigtog" id="voiceBtn" data-tog="voice" aria-pressed="true"><span class="bt"><b>가이드 음성</b><em>ON</em></span><small>카운트인·파트 안내</small></button>
+        </div>
+        <div class="quick-s" id="quick"></div>
+      </div>
     </div>
     <div class="panel form-panel" id="formPanel">
       <div class="form-head">
         <span class="t" id="formInfo">송폼</span>
         <span style="display:flex;gap:6px">
-          <button class="ghost" id="followBtn" aria-pressed="true">송폼 끄기</button>
           <button class="ghost" id="repeatBtn" disabled>이 파트 한 번 더</button>
           <button class="ghost" id="editCurSong">곡 편집</button>
         </span>
@@ -1455,7 +1479,7 @@ function cue(sec, t, avail){
 
 /* ---------- transport / scheduler ---------- */
 const P = {playing:false, timer:null, songId:null, secs:[], mode:'free', si:0, bis:0, b:0, s:0, countLeft:0, countTotal:0, countBar:0,
-  freeBar:0, queued:null, cuedNext:null, resume:null, offFrom:null, nextT:0, ending:false, endT:0, events:[], startIdx:0, wake:null, pendingRemote:false};
+  freeBar:0, queued:null, cuedNext:null, resume:null, enterAt:null, offFrom:null, nextT:0, ending:false, endT:0, events:[], startIdx:0, wake:null, pendingRemote:false};
 const bpmOf = song => clamp(song.bpm||72, 30, 260);
 const nameBeat = ts => ts.beats>=3 ? ts.beats-2 : 1;
 function barMeter(sec, bis){ return sec ? sec.cues.find(c=>c.k==='meter' && (c.all || c.bar===bis+1)) : null; }
@@ -1507,7 +1531,7 @@ async function startPlay(){
   if(formOffSong && formOffSong!==song.id) formOffSong = null;
   P.mode = P.secs.length && !formOff(song.id) ? 'form' : 'free';
   P.si = P.secs.length ? clamp(P.startIdx,0,P.secs.length-1) : 0;
-  P.resume = null; P.offFrom = P.mode==='free' && P.secs.length ? P.si-1 : null;
+  P.resume = null; P.enterAt = null; P.offFrom = P.mode==='free' && P.secs.length ? P.si-1 : null;
   P.bis=0; P.b=0; P.s=0; P.freeBar=0; P.queued=null; P.cuedNext=null; P.ending=false; P.events=[]; P.loopN=1;
   P.countTotal = clamp(song.countIn|0,0,2); P.countLeft = P.countTotal; P.countBar=0;
   P.nextT = ctx.currentTime + 0.3; P.playing = true; P.skipped = 0;
@@ -1554,7 +1578,7 @@ function tick(){
   const until = now + aheadSec();
   while(P.nextT < until){
     if(P.ending){
-      if(settings().click) playBuf(BUF[settings().sound].acc, P.nextT, 1, clickBus);
+      // 송폼이 끝난 자리(다음 마디 첫 박)에는 소리를 내지 않는다. 화면만 「끝」으로 바꾼다
       P.events.push({t:P.nextT, end:true});
       P.endT = P.nextT; clock.stop();
       const ms = (P.endT - ctx.currentTime)*1000 + 450;
@@ -1597,9 +1621,12 @@ function scheduleStep(song, t){
   if(rit && isBeat && st.guide!=='off'){
     sayFit(vbuf('c'+(P.b+1)), t, beatDur, 0.8, 0.92, 1.35);
   }
-  // 송폼을 다시 켰을 때: 돌아가기 바로 전 마디를 1 2 3 4로 센다
-  if(P.mode==='free' && P.resume && P.resume.left===1 && !inCount && isBeat && st.guide!=='off' && st.guideCount)
-    sayFit(vbuf('c'+(P.b+1)), t, beatDur, 0.8, 0.92, 1.35);
+  // 송폼을 다시 켰는데 앞 파트가 없거나 짧을 때(두 마디 안내만 따로): 첫 마디 끝에 파트 이름, 둘째 마디는 1 2 3 4
+  if(P.mode==='free' && P.resume && !inCount && isBeat && st.guide!=='off'){
+    const nb = nameBeat(ts);
+    if(P.resume.left===2 && P.b===nb && P.secs[P.resume.idx]) cue(P.secs[P.resume.idx], t, Math.max(1, ts.beats-nb)*beatDur);
+    if(P.resume.left===1 && st.guideCount) sayFit(vbuf('c'+(P.b+1)), t, beatDur, 0.8, 0.92, 1.35);
+  }
   // part guide: name at the end of the bar two bars before the change, then "1 2 3 4" over the last bar
   if(!rit && !inCount && P.mode==='form' && isBeat && st.guide!=='off'){
     const sec = P.secs[P.si];
@@ -1645,6 +1672,7 @@ function advance(song){
   if(P.countLeft>0){ P.countLeft--; P.countBar++; return; }
   if(P.mode==='free'){
     P.freeBar++;
+    if(P.enterAt!=null){ const i=P.enterAt; P.enterAt=null; leadIn(i); return; }
     if(P.resume && --P.resume.left<=0){ P.mode='form'; P.si=P.resume.idx; P.bis=0; P.resume=null; P.queued=null; P.cuedNext=null; P.ending=false; }
     return;
   }
@@ -1668,7 +1696,10 @@ function toggleFollow(){
   const id = P.playing ? P.songId : curSong()?.id; if(!id) return;
   if(!formOff(id)){
     formOffSong = id;
-    if(P.playing && P.mode==='form'){ P.offFrom = P.si; P.mode='free'; P.freeBar=0; P.queued=null; P.cuedNext=null; P.resume=null; P.ending=false; hushVoices(); }
+    if(P.playing && (P.mode==='form' || P.resume || P.enterAt!=null)){
+      if(P.mode==='form') P.offFrom = P.si;
+      P.mode='free'; P.freeBar=0; P.queued=null; P.cuedNext=null; P.resume=null; P.enterAt=null; P.ending=false; hushVoices();
+    }
     toast('송폼을 껐습니다 · 클릭만 계속 나옵니다');
   } else {
     formOffSong = null;
@@ -1679,15 +1710,34 @@ function toggleFollow(){
   }
   renderForm(); repaintNow();
 }
-// 지금 마디가 끝나면 한 마디(카운트) 세고 idx 파트부터 송폼을 다시 따라간다
+/* 송폼 다시 켜기(FREE → 송폼): idx 파트 「두 마디 전 1박」으로 들어간다.
+   예) V 8마디 - C 송폼에서 C를 누르면 V 7마디 1박이 되고, 평소처럼 7마디 끝에 「Chorus」, 8마디에 1 2 3 4, 그다음 C.
+   - 지금 마디 첫 박 안에 눌렀거나(이름 부를 박이 아직 예약 전) 다음 칸이 바로 새 마디 첫 박이면: 지금 마디가 7마디
+   - 그 밖에는 지금 마디를 클릭만으로 마치고 다음 마디 첫 박이 7마디 1박
+   앞 파트가 없거나 2마디보다 짧으면 FREE인 채로 같은 두 마디 안내(이름 → 1 2 3 4)만 한다. */
 function resumeForm(idx){
   if(!P.playing || !P.secs[idx]) return;
   formOffSong = null;
-  if(P.countLeft>0){ P.mode='form'; P.si=idx; P.bis=0; P.resume=null; renderForm(); repaintNow(); return; }
-  P.resume = {idx, left:2};
-  if(settings().guide!=='off'){ const sg = songOf(P.songId, P.listId); cue(P.secs[idx], ctx.currentTime + 0.05, 2*60/bpmOf(sg)); }
+  if(P.countLeft>0){ P.mode='form'; P.si=idx; P.bis=0; P.resume=null; P.enterAt=null; renderForm(); repaintNow(); return; }
+  hushVoices(); P.resume=null; P.enterAt=null;
+  const song = songOf(P.songId, P.listId), sub = subOf(song);
+  const beats = curBeats(song), stepDur = 60/tempoNow(song)/sub, beatDur = stepDur*sub, nb = nameBeat({beats});
+  let now = P.b===0 && P.s===0;                          // 다음에 예약할 칸이 새 마디 첫 박
+  if(!now){
+    const down = P.nextT - (P.b*sub + P.s)*stepDur;        // 지금 예약 중인 마디의 첫 박 시각
+    const early = P.b < nb || (P.b===nb && P.s===0);       // 파트 이름 부를 박이 아직 예약되지 않음
+    now = early && ctx.currentTime < down + beatDur;
+  }
+  if(now) leadIn(idx); else P.enterAt = idx;
   renderForm(); repaintNow();
 }
+function leadIn(idx){
+  const pv = P.secs[idx-1];
+  P.queued=null; P.cuedNext=null; P.ending=false; P.loopN=1; P.resume=null; P.enterAt=null;
+  if(pv && pv.bars>=2){ P.mode='form'; P.si=idx-1; P.bis=pv.bars-2; P.queued=idx; }
+  else { P.mode='free'; P.resume={idx, left:2}; }
+}
+const resumeIdx = () => P.enterAt!=null ? P.enterAt : P.resume ? P.resume.idx : null;
 function queueSection(idx){
   if(!P.playing || P.mode!=='form') return;
   P.queued = idx;
@@ -1743,10 +1793,10 @@ function applyEvent(ev){
   }
   if(prev && !prev.inCount && prev.si===ev.si && prev.bis===ev.bis && prev.mode===ev.mode && ev.b!==0) return;
   if(ev.mode==='free'){
-    const off = formOff(P.songId) || P.resume;
-    $('#phase').textContent = off ? '송폼 끔 · 클릭만' : P.secs.length ? '송폼 끝 · 계속 클릭' : '연주 중';
+    const back = resumeIdx()!=null, off = formOff(P.songId) || back;
+    $('#phase').textContent = back ? '송폼으로 돌아가는 중' : off ? '송폼 끔 · 클릭만' : P.secs.length ? '송폼 끝 · 계속 클릭' : '연주 중';
     const sn=$('#secName'); sn.textContent = 'FREE'; sn.className='secname';
-    $('#secKo').textContent = off ? '인도자를 따라가세요 · 돌아갈 파트를 누르면 한 마디 세고 이어 갑니다' : P.secs.length ? '송폼 이후 자유 진행' : P.songId===FREE_ID ? '그냥 클릭' : '송폼 없이 진행';
+    $('#secKo').textContent = back ? '두 마디 안내 뒤 그 파트부터 이어 갑니다' : off ? '인도자를 따라가세요 · 돌아갈 파트를 누르면 두 마디 전으로 들어가 이어 갑니다' : P.secs.length ? '송폼 이후 자유 진행' : P.songId===FREE_ID ? '그냥 클릭' : '송폼 없이 진행';
     $('#barCount').innerHTML = `<b>${ev.freeBar+1}</b><small>마디</small>`;
     renderResumeRow(); setNow(null); renderBarsMeter(0);
   } else {
@@ -1869,8 +1919,9 @@ function renderIdle(){
   }
 }
 function renderResumeRow(){
-  const r = P.resume, sec = r && P.secs[r.idx];
-  $('#nextRow').innerHTML = sec ? `<span class="arrow">돌아갈 파트</span><b style="--sc:${scv(sec.k)}">${esc(sec.en)}</b><span>${r.left===1?'이번 마디 끝나고':'다음 마디 세고'}</span>` : '';
+  const i = resumeIdx(), sec = i!=null && P.secs[i];
+  const when = P.enterAt!=null ? '다음 마디부터 두 마디 안내' : P.resume && P.resume.left===1 ? '이번 마디 끝나고' : '2마디 뒤';
+  $('#nextRow').innerHTML = sec ? `<span class="arrow">돌아갈 파트</span><b style="--sc:${scv(sec.k)}">${esc(sec.en)}</b><span>${when}</span><span class="q">예약</span>` : '';
 }
 // 송폼을 끄거나 켠 즉시 지금 칸을 다시 그린다(다음 박을 기다리지 않게)
 function repaintNow(){ if(!P.playing) return; lastEv = null; if(P.mode==='free') renderResumeRow(); }
@@ -1906,7 +1957,7 @@ function renderForm(){
   $('#formInfo').innerHTML = `송폼<small>${items.length}파트 · ${formBars(items)}마디${fromList?' · 재생목록 송폼':''}</small>`;
   line.innerHTML = items.map((it,i)=>{
     let cls='blk';
-    if(P.playing && P.songId===s.id){ if(i===P.si && P.mode==='form') cls+=' cur'; else if(i<P.si) cls+=' done'; if(P.queued===i) cls+=' queued'; }
+    if(P.playing && P.songId===s.id){ if(i===P.si && P.mode==='form') cls+=' cur'; else if(i<P.si) cls+=' done'; if(P.queued===i || resumeIdx()===i) cls+=' queued'; }
     else if(i===P.startIdx) cls+=' start';
     if(it.cues.some(c=>c.k!=='meter')) cls+=' has-cue';
     const ms = it.cues.filter(c=>c.k==='meter');
@@ -1918,12 +1969,14 @@ function renderForm(){
 }
 function renderFollow(s){
   const id = P.playing ? P.songId : s?.id, off = formOff(id), has = !!(s && parseForm(s.form).items.length);
-  const fb = $('#followBtn'); fb.style.display = has ? '' : 'none'; $('#repeatBtn').style.display = has ? '' : 'none';
+  const fb = $('#followBtn'); $('#repeatBtn').style.display = has ? '' : 'none';
   $('#formHint').style.display = has ? '' : 'none';
-  fb.textContent = off ? '송폼 켜기' : '송폼 끄기'; fb.setAttribute('aria-pressed', String(!off)); fb.classList.toggle('primary', off);
   const nx = P.offFrom==null ? 0 : P.offFrom+1, ns = P.secs[clamp(nx,0,Math.max(0,P.secs.length-1))];
+  fb.disabled = !has; fb.setAttribute('aria-pressed', String(has && !off));
+  fb.innerHTML = `<span class="bt"><b>송폼</b><em>${off?'OFF':'ON'}</em></span><small>${!has ? '송폼 없는 곡' : off ? (P.playing && ns ? `클릭만 · 누르면 ${esc(ns.ab)}로` : '클릭만 나옵니다') : '파트 따라가는 중'}</small>`;
+  fb.title = has ? (off ? '송폼 켜기 (F)' : '송폼 끄기 (F)') : '';
   $('#formHint').textContent = !off ? '블록을 누르면 그 파트부터 시작합니다. 연주 중에 누르면 다음 파트로 예약됩니다.'
-    : P.playing ? `송폼을 껐습니다. 클릭만 계속 나옵니다. 돌아갈 파트를 누르면 한 마디 세고 그 파트부터 이어 갑니다.${ns?` 「송폼 켜기」를 누르면 ${ns.en}로 돌아갑니다.`:''}`
+    : P.playing ? `송폼을 껐습니다. 클릭만 계속 나옵니다. 돌아갈 파트를 누르면 그 파트 두 마디 전 1박으로 들어가 이름·카운트 뒤 이어 갑니다.${ns?` 「송폼」 버튼을 누르면 ${ns.en}로 돌아갑니다.`:''}`
     : '송폼을 껐습니다. 시작하면 카운트인 뒤 클릭만 계속 나옵니다.';
 }
 function updateFormProgress(ev){
@@ -1932,14 +1985,23 @@ function updateFormProgress(ev){
     if(!b.dataset.sec) return;
     b.classList.toggle('cur', ev.mode==='form' && i===ev.si);
     b.classList.toggle('done', i<ev.si);
-    b.classList.toggle('queued', P.queued===i);
+    b.classList.toggle('queued', P.queued===i || resumeIdx()===i);
     b.style.setProperty('--p', ev.mode==='form' && i===ev.si ? ((ev.bis+1)/P.secs[i].bars) : (i<ev.si?1:0));
   });
 }
+// 가이드 음성: 카운트인 음성과 파트 안내(큐·카운트 포함)를 한 스위치로 켜고 끈다. 안내 언어(영어/한국어)는 기억해 둔다
+const voiceOn = st => st.guide!=='off' || !!st.countVoice;
+function setVoice(st, on, lang){
+  if(on){ st.guide = lang || (st.guide!=='off' ? st.guide : (st.guideLang || 'en')); st.guideLang = st.guide; st.countVoice = true; }
+  else { if(st.guide!=='off') st.guideLang = st.guide; st.guide = 'off'; st.countVoice = false; hushVoices(); }
+}
 function renderQuick(){
   const st = settings();
-  const items = [['click','클릭 소리'],['flash','화면 깜빡임'],['countVoice','카운트인 음성'],['guide','파트 안내 음성']];
-  $('#quick').innerHTML = items.map(([k,l])=>{ const on = k==='guide' ? st.guide!=='off' : !!st[k]; return `<button class="tog" data-tog="${k}" aria-pressed="${on}">${l}<i></i></button>`; }).join('');
+  const items = [['click','클릭 소리'],['flash','화면 깜빡임']];
+  $('#quick').innerHTML = items.map(([k,l])=>`<button class="tog" data-tog="${k}" aria-pressed="${!!st[k]}">${l}<i></i></button>`).join('');
+  const von = voiceOn(st), vb = $('#voiceBtn');
+  vb.setAttribute('aria-pressed', String(von));
+  vb.innerHTML = `<span class="bt"><b>가이드 음성</b><em>${von?'ON':'OFF'}</em></span><small>${von ? '카운트인·파트 안내' : '음성 없이 클릭만'}</small>`;
 }
 function renderTransport(){
   const b=$('#playBtn'); b.dataset.on = P.playing;
@@ -2851,7 +2913,7 @@ function renderSettings(){
     </div>
     <div class="set-h">음성 안내</div>
     <div class="set-group">
-      <div class="set-row"><span>파트 안내 음성<small>다음 파트 이름을 두 마디 전 끝에 불러 줍니다. 한국어는 기기 음성이라 조금 늦을 수 있습니다.</small></span>${seg('guide',[['en','영어'],['ko','한국어'],['off','끄기']])}</div>
+      <div class="set-row"><span>가이드 음성<small>카운트인과 다음 파트 이름(두 마디 전 끝)·큐를 불러 줍니다. 연주 화면의 「가이드 음성」 버튼과 같습니다. 한국어 파트 안내는 기기 음성이라 조금 늦을 수 있습니다.</small></span>${seg('guide',[['en','영어'],['ko','한국어'],['off','끄기']])}</div>
       <div class="set-row"><span>안내 목소리<small>영어 파트 안내와 카운트(One, Two…)에 쓰는 목소리입니다. 고르면 지금 곡 템포로 미리 들려 드립니다.</small></span>${seg('voiceGender',[['m','남성'],['f','여성']])}</div>
       <div class="set-row"><span>말 빠르기<small>템포에 맞춤: 느린 곡은 여유 있게, 빠른 곡은 빠르게 읽습니다. 음 높이는 그대로입니다.</small></span>${seg('voicePace',[['auto','템포에 맞춤'],['fast','늘 빠르게']])}</div>
       <div class="set-row"><span>마지막 마디 카운트<small>파트가 바뀌기 직전 마디를 One, Two, Three, Four로 셉니다.</small></span>${seg('guideCount',[['true','켜기'],['false','끄기']])}</div>
@@ -2979,7 +3041,7 @@ document.addEventListener('click', e=>{
   if(d.sec!=null && t.classList.contains('blk')){ const i=+d.sec;
     if(P.playing){ if(P.mode==='free' && P.secs.length) resumeForm(i); else queueSection(i); }
     else { P.startIdx=i; renderIdle(); renderForm(); } return; }
-  if(d.tog){ const st=settings(); if(d.tog==='guide') st.guide = st.guide==='off' ? 'en' : 'off'; else st[d.tog]=!st[d.tog]; markDirty('meta'); renderQuick(); if(!st.flash) setFlash(); return; }
+  if(d.tog){ const st=settings(); if(d.tog==='voice'){ setVoice(st, !voiceOn(st)); toast(voiceOn(st) ? '가이드 음성을 켰습니다' : '가이드 음성을 껐습니다 · 클릭만 나옵니다'); } else st[d.tog]=!st[d.tog]; markDirty('meta'); renderQuick(); if(!st.flash) setFlash(); return; }
   if(d.goto){ showView(d.goto); return; }
   if(d.openlist){ openListId=d.openlist; renderLists(); $('#v-lists').scrollTop=0; return; }
   if(d.newlist){ closeSheet('listSheet'); newList(); return; }
@@ -3011,7 +3073,7 @@ document.addEventListener('click', e=>{
   if(d.chip){ const ta=$('#fForm'); const bars = /^[IOE]$/.test(d.chip) ? 4 : 8; ta.value = (ta.value.trim() ? ta.value.trim().replace(/,\s*$/,'') + ', ' : '') + d.chip + ' ' + bars; renderEditorPreview(); return; }
   if(d.rmplay!=null){ editPlays.splice(+d.rmplay,1); renderEditorPlays(editId?S.songs[editId]:null); return; }
   if(d.set==='theme'){ setTheme(d.val); renderSettings(); return; }
-  if(d.set){ const st=settings(); const v=d.val; st[d.set] = v==='true' ? true : v==='false' ? false : v; markDirty('meta'); renderSettings(); renderQuick();
+  if(d.set){ const st=settings(); const v=d.val; if(d.set==='guide') setVoice(st, v!=='off', v!=='off' ? v : null); else st[d.set] = v==='true' ? true : v==='false' ? false : v; markDirty('meta'); renderSettings(); renderQuick();
     if(d.set==='sound' || d.set==='accent') previewBar();
     if(d.set==='voiceGender' || d.set==='voicePace') previewVoice();
     return; }
