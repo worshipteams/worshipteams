@@ -8,57 +8,84 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="드러머트로놈">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0A0C12" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#080C1E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EEF1FA" media="(prefers-color-scheme: light)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="fonts/nanum-eco.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.sync{cursor:pointer}</style>
 <style>
-/* Layout: a single stage for the drum riser — a tempo dial that lights beat by beat, the current part in big type, and a floating transport in the thumb zone. Brass = cymbal, graphite = dim stage. */
+/* Layout: a single stage for the drum riser — a tempo dial that lights beat by beat, the current part in big type, and a floating transport in the thumb zone.
+   색: 진한 남색 무대 + 로열 블루 강조(2026-11-25). 제목·중요 글씨는 나눔고딕 에코(--title), 본문은 IBM Plex Sans KR(--ui), 숫자·영문 파트 이름은 Archivo(--display). */
 :root{
   color-scheme: dark;
-  --bg:#0A0C12; --bg-2:#0F121A; --surface:#141821; --surface-2:#1B2029; --raise:#212734;
-  --line:rgba(255,255,255,.07); --line-2:rgba(255,255,255,.14);
-  --fg:#F3F1EC; --fg-2:#C7C9D1; --muted:#80879A;
-  --accent:#F0B24A; --accent-ink:#1E1505; --accent-soft:rgba(240,178,74,.14);
-  --steel:#8DB4F0; --danger:#F07862; --ok:#5FCB8A;
-  --flash:#F6E7C4; --scrim:rgba(3,5,10,.62); --shadow:0 12px 34px rgba(0,0,0,.42); --glass:rgba(16,19,27,.78);
-  --c-edge:#9AA2B8; --c-verse:#82A9F5; --c-pre:#5CC9BE; --c-chorus:#F0B24A; --c-bridge:#B79CF6; --c-inst:#8DC77B; --c-tag:#F28FA8; --c-cue:#FF8A5B;
+  --bg:#080C1E; --bg-2:#0C1129; --surface:#111836; --surface-2:#19214A; --raise:#222C5C;
+  --line:rgba(150,170,255,.10); --line-2:rgba(150,170,255,.20);
+  --fg:#EEF1FF; --fg-2:#C0C7E8; --muted:#7E88B5;
+  --accent:#5B7BFF; --accent-2:#8EA4FF; --accent-ink:#FFFFFF; --accent-soft:rgba(91,123,255,.17);
+  --steel:#5FD0F0; --danger:#FF7A85; --ok:#4FD39A;
+  --flash:#D9E1FF; --scrim:rgba(3,6,22,.66); --shadow:0 14px 40px rgba(1,3,16,.55); --glass:rgba(17,24,58,.74);
+  --glow:0 8px 26px rgba(80,110,255,.42);
+  --page-bg:radial-gradient(900px 520px at 88% -8%, rgba(76,102,255,.20), transparent 62%), radial-gradient(760px 520px at -6% 108%, rgba(64,86,230,.16), transparent 60%), linear-gradient(180deg,#0A0F26,#070A1A);
+  --card-bg:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 55%), var(--surface);
+  --hero-bg:radial-gradient(120% 70% at 50% 118%, rgba(91,123,255,.42), transparent 62%), linear-gradient(180deg,#17205A,#10173F);
+  --title-grad:linear-gradient(92deg,#9DB0FF 0%,#C9D3FF 45%,#FFFFFF 100%);
+  --btn-grad:linear-gradient(180deg,#6C88FF,#4A67F2);
+  --c-edge:#9AA5CC; --c-verse:#7FA8FF; --c-pre:#4FD1C5; --c-chorus:#F3B54E; --c-bridge:#B79CF6; --c-inst:#8DD07B; --c-tag:#F592B0; --c-cue:#FF8A5B;
   --display:"Archivo", "Helvetica Neue", Arial, sans-serif;
   --ui:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --title:"NanumGothicEco", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --r:14px;
 }
 @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]):not([data-app-theme]){
   color-scheme: light;
-  --bg:#F3F4F7; --bg-2:#EBEDF2; --surface:#FFFFFF; --surface-2:#F0F1F5; --raise:#FFFFFF;
-  --line:rgba(16,22,40,.08); --line-2:rgba(16,22,40,.16);
-  --fg:#10121A; --fg-2:#3A3E4C; --muted:#687084;
-  --accent:#A86C06; --accent-ink:#FFFFFF; --accent-soft:rgba(168,108,6,.11);
-  --steel:#2C5FB5; --danger:#C8432E; --ok:#23854F;
-  --flash:#241904; --scrim:rgba(20,24,40,.32); --shadow:0 12px 34px rgba(20,25,45,.10); --glass:rgba(255,255,255,.82);
-  --c-edge:#646C86; --c-verse:#2D62C6; --c-pre:#11857C; --c-chorus:#A86C06; --c-bridge:#7350D2; --c-inst:#3B832C; --c-tag:#BE3A62; --c-cue:#C2410C } }
+  --bg:#EEF1FA; --bg-2:#E7EBF7; --surface:#FFFFFF; --surface-2:#EDF0FB; --raise:#FFFFFF;
+  --line:rgba(22,34,100,.09); --line-2:rgba(22,34,100,.18);
+  --fg:#0D1333; --fg-2:#343C66; --muted:#68729C;
+  --accent:#3B58F0; --accent-2:#6C86FF; --accent-ink:#FFFFFF; --accent-soft:rgba(59,88,240,.11);
+  --steel:#0B87B8; --danger:#D23B4A; --ok:#1F8A57;
+  --flash:#0D1333; --scrim:rgba(14,20,56,.34); --shadow:0 12px 34px rgba(20,32,96,.12); --glass:rgba(255,255,255,.82);
+  --glow:0 8px 22px rgba(59,88,240,.30);
+  --page-bg:radial-gradient(900px 520px at 88% -8%, rgba(91,123,255,.16), transparent 62%), radial-gradient(760px 520px at -6% 108%, rgba(91,123,255,.10), transparent 60%), linear-gradient(180deg,#F2F4FC,#E9EDF8);
+  --card-bg:var(--surface);
+  --hero-bg:radial-gradient(120% 70% at 50% 118%, rgba(91,123,255,.16), transparent 62%), linear-gradient(180deg,#FFFFFF,#F3F5FF);
+  --title-grad:linear-gradient(92deg,#2C47DD 0%,#5B7BFF 50%,#0D1333 100%);
+  --btn-grad:linear-gradient(180deg,#5573FF,#3651E6);
+  --c-edge:#626B8F; --c-verse:#2D62C6; --c-pre:#11857C; --c-chorus:#A86C06; --c-bridge:#7350D2; --c-inst:#3B832C; --c-tag:#BE3A62; --c-cue:#C2410C } }
 :root[data-theme="light"]:not([data-app-theme]), :root[data-app-theme="light"]{
   color-scheme: light;
-  --bg:#F3F4F7; --bg-2:#EBEDF2; --surface:#FFFFFF; --surface-2:#F0F1F5; --raise:#FFFFFF;
-  --line:rgba(16,22,40,.08); --line-2:rgba(16,22,40,.16);
-  --fg:#10121A; --fg-2:#3A3E4C; --muted:#687084;
-  --accent:#A86C06; --accent-ink:#FFFFFF; --accent-soft:rgba(168,108,6,.11);
-  --steel:#2C5FB5; --danger:#C8432E; --ok:#23854F;
-  --flash:#241904; --scrim:rgba(20,24,40,.32); --shadow:0 12px 34px rgba(20,25,45,.10); --glass:rgba(255,255,255,.82);
-  --c-edge:#646C86; --c-verse:#2D62C6; --c-pre:#11857C; --c-chorus:#A86C06; --c-bridge:#7350D2; --c-inst:#3B832C; --c-tag:#BE3A62; --c-cue:#C2410C }
+  --bg:#EEF1FA; --bg-2:#E7EBF7; --surface:#FFFFFF; --surface-2:#EDF0FB; --raise:#FFFFFF;
+  --line:rgba(22,34,100,.09); --line-2:rgba(22,34,100,.18);
+  --fg:#0D1333; --fg-2:#343C66; --muted:#68729C;
+  --accent:#3B58F0; --accent-2:#6C86FF; --accent-ink:#FFFFFF; --accent-soft:rgba(59,88,240,.11);
+  --steel:#0B87B8; --danger:#D23B4A; --ok:#1F8A57;
+  --flash:#0D1333; --scrim:rgba(14,20,56,.34); --shadow:0 12px 34px rgba(20,32,96,.12); --glass:rgba(255,255,255,.82);
+  --glow:0 8px 22px rgba(59,88,240,.30);
+  --page-bg:radial-gradient(900px 520px at 88% -8%, rgba(91,123,255,.16), transparent 62%), radial-gradient(760px 520px at -6% 108%, rgba(91,123,255,.10), transparent 60%), linear-gradient(180deg,#F2F4FC,#E9EDF8);
+  --card-bg:var(--surface);
+  --hero-bg:radial-gradient(120% 70% at 50% 118%, rgba(91,123,255,.16), transparent 62%), linear-gradient(180deg,#FFFFFF,#F3F5FF);
+  --title-grad:linear-gradient(92deg,#2C47DD 0%,#5B7BFF 50%,#0D1333 100%);
+  --btn-grad:linear-gradient(180deg,#5573FF,#3651E6);
+  --c-edge:#626B8F; --c-verse:#2D62C6; --c-pre:#11857C; --c-chorus:#A86C06; --c-bridge:#7350D2; --c-inst:#3B832C; --c-tag:#BE3A62; --c-cue:#C2410C }
 :root[data-app-theme="dark"]{
   color-scheme: dark;
-  --bg:#0A0C12; --bg-2:#0F121A; --surface:#141821; --surface-2:#1B2029; --raise:#212734;
-  --line:rgba(255,255,255,.07); --line-2:rgba(255,255,255,.14);
-  --fg:#F3F1EC; --fg-2:#C7C9D1; --muted:#80879A;
-  --accent:#F0B24A; --accent-ink:#1E1505; --accent-soft:rgba(240,178,74,.14);
-  --steel:#8DB4F0; --danger:#F07862; --ok:#5FCB8A;
-  --flash:#F6E7C4; --scrim:rgba(3,5,10,.62); --shadow:0 12px 34px rgba(0,0,0,.42); --glass:rgba(16,19,27,.78);
-  --c-edge:#9AA2B8; --c-verse:#82A9F5; --c-pre:#5CC9BE; --c-chorus:#F0B24A; --c-bridge:#B79CF6; --c-inst:#8DC77B; --c-tag:#F28FA8; --c-cue:#FF8A5B }
+  --bg:#080C1E; --bg-2:#0C1129; --surface:#111836; --surface-2:#19214A; --raise:#222C5C;
+  --line:rgba(150,170,255,.10); --line-2:rgba(150,170,255,.20);
+  --fg:#EEF1FF; --fg-2:#C0C7E8; --muted:#7E88B5;
+  --accent:#5B7BFF; --accent-2:#8EA4FF; --accent-ink:#FFFFFF; --accent-soft:rgba(91,123,255,.17);
+  --steel:#5FD0F0; --danger:#FF7A85; --ok:#4FD39A;
+  --flash:#D9E1FF; --scrim:rgba(3,6,22,.66); --shadow:0 14px 40px rgba(1,3,16,.55); --glass:rgba(17,24,58,.74);
+  --glow:0 8px 26px rgba(80,110,255,.42);
+  --page-bg:radial-gradient(900px 520px at 88% -8%, rgba(76,102,255,.20), transparent 62%), radial-gradient(760px 520px at -6% 108%, rgba(64,86,230,.16), transparent 60%), linear-gradient(180deg,#0A0F26,#070A1A);
+  --card-bg:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 55%), var(--surface);
+  --hero-bg:radial-gradient(120% 70% at 50% 118%, rgba(91,123,255,.42), transparent 62%), linear-gradient(180deg,#17205A,#10173F);
+  --title-grad:linear-gradient(92deg,#9DB0FF 0%,#C9D3FF 45%,#FFFFFF 100%);
+  --btn-grad:linear-gradient(180deg,#6C88FF,#4A67F2);
+  --c-edge:#9AA5CC; --c-verse:#7FA8FF; --c-pre:#4FD1C5; --c-chorus:#F3B54E; --c-bridge:#B79CF6; --c-inst:#8DD07B; --c-tag:#F592B0; --c-cue:#FF8A5B }
 
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
@@ -207,7 +234,7 @@ button[disabled]{cursor:default}
 .ink-cursor{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;opacity:0;box-shadow:0 0 0 1px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.8);transition:opacity .12s}
 .ink-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#8a8f98;font-size:13px;pointer-events:none}
 .ink-wrap.off .ink-live{cursor:default}
-.ink-selbar{position:absolute;left:0;top:0;display:flex;gap:2px;padding:3px;border-radius:11px;background:#1d2230;box-shadow:0 4px 14px rgba(0,0,0,.28);z-index:3;transform:translate(-50%,0);white-space:nowrap}
+.ink-selbar{position:absolute;left:0;top:0;display:flex;gap:2px;padding:3px;border-radius:11px;background:#141C44;box-shadow:0 4px 14px rgba(0,0,0,.28);z-index:3;transform:translate(-50%,0);white-space:nowrap}
 .ink-selbar[hidden]{display:none}
 .ink-selbar button{padding:6px 11px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;min-height:32px;touch-action:manipulation}
 .ink-selbar button:active{background:rgba(255,255,255,.14)}
@@ -259,6 +286,7 @@ button[disabled]{cursor:default}
 
 .quick{display:flex;flex-direction:column;gap:8px}
 .quick-s{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tog .ls{display:none}
 /* 송폼·가이드 음성: 연주 중에 자주 누르므로 큰 버튼 두 개를 나란히 둔다 */
 .bigtogs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .bigtog{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:3px;min-height:66px;padding:10px 14px;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1.5px var(--line-2);text-align:left;color:var(--muted);transition:background .15s, box-shadow .15s}
@@ -478,6 +506,48 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 .kbd{font-family:var(--display);font-weight:700;font-size:11px;background:var(--surface-2);border-radius:5px;padding:1px 5px;color:var(--fg-2)}
 .toast{position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:12px;font-size:14px;z-index:60;font-weight:600;max-width:90%;box-shadow:var(--shadow)}
 
+/* ---------- 남색 테마 덧칠(2026-11-25) ----------
+   배경: 남색 위에 파란 빛이 번지는 무대. 카드: 살짝 위가 밝은 남색 판. BPM 칸: 아래에서 파란 빛이 올라오는 강조 카드.
+   제목·중요 글씨: 나눔고딕 에코(--title). */
+body{background:var(--page-bg);background-color:var(--bg)}
+.panel,.card,.tog,.row,.set-group,.notice,.chip-song,.fb-row{background:var(--card-bg)}
+.hud{background:var(--hero-bg);box-shadow:0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent), 0 18px 44px -18px color-mix(in srgb, var(--accent) 55%, transparent)}
+.hud .step{background:color-mix(in srgb, var(--surface-2) 82%, transparent);box-shadow:0 0 0 1px var(--line)}
+.hud .seg,.hud .keytag{background:color-mix(in srgb, var(--surface-2) 78%, transparent)}
+.dial .track{stroke:color-mix(in srgb, var(--surface-2) 85%, transparent)}
+.dial .arc.down.on{stroke:var(--accent-2);filter:drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent))}
+.dial .halo{fill:var(--accent-2)}
+/* 강조 단추: 파란 그라데이션 + 빛 */
+.primary,.play{background:var(--btn-grad);box-shadow:var(--glow)}
+.primary:hover{filter:brightness(1.08)}
+.play[data-on="true"]{background:var(--fg);color:var(--bg);box-shadow:0 8px 24px -8px color-mix(in srgb, var(--fg) 45%, transparent)}
+.free-btn[aria-pressed="true"],#fBoth.arm,#inkToLib.arm{background:var(--btn-grad);box-shadow:var(--glow)}
+/* 위쪽 탭: 둥근 알약, 고른 탭은 파란 빛 */
+.top{background:linear-gradient(180deg, color-mix(in srgb, var(--bg) 70%, transparent), transparent)}
+.tabs{border-radius:999px;padding:4px;background:color-mix(in srgb, var(--surface-2) 80%, transparent);box-shadow:0 0 0 1px var(--line)}
+.tabs button{border-radius:999px}
+.tabs button[aria-selected="true"]{background:var(--btn-grad);color:#fff;box-shadow:var(--glow)}
+.brand svg rect{fill:url(#brandGrad)}
+.icon-btn{border-radius:999px}
+.icon-btn:hover{background:var(--surface-2);box-shadow:0 0 0 1px var(--line)}
+/* 고른 칸·켠 스위치 */
+.chip-song[aria-current="true"]{box-shadow:0 0 0 1.5px var(--accent), 0 6px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent)}
+.chip-song[aria-current="true"] b{background:var(--btn-grad)}
+.tog[aria-pressed="true"]{box-shadow:0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent)}
+.tog[aria-pressed="true"] i, .row[aria-checked="true"] .sw, .row[aria-checked="true"] .check{background:var(--btn-grad)}
+.seg button[aria-pressed="true"]{background:var(--raise);box-shadow:0 1px 2px rgba(0,0,0,.2),0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent)}
+.gfilter button[aria-pressed="true"]{background:var(--btn-grad);color:#fff}
+.transport .in{border-radius:26px;box-shadow:var(--shadow), 0 0 0 1px color-mix(in srgb, var(--accent) 22%, var(--line))}
+.sheet{background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--bg-2)), var(--bg-2) 140px)}
+.inp:focus{box-shadow:0 0 0 3px var(--accent-soft)}
+/* 제목·중요 글씨 */
+.brand,.tabs button,.setname,.song-head h1,.sec-title h2,.card h3,.sheet-h h2,.form-head .t,.ink-head .t,
+.primary,.play,.free-btn,.ghost,.tog,.chip-song span,.row .t b,.set-row > span,.set-row > label,.secko,.toast{font-family:var(--title)}
+.sec-title h2,.brand span{background:var(--title-grad);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.sec-title h2{font-weight:800;font-size:28px;letter-spacing:-.02em}
+.song-head h1,.card h3{font-weight:800;letter-spacing:-.015em}
+.brand{font-weight:800;font-size:16px}
+
 /* ---------- 연주 화면 배치 ----------
    휴대폰: 한 줄로 BPM·지금 칸·스위치 → 송폼 → 필기
    가로 화면(아이패드 가로·컴퓨터): 왼쪽 BPM·지금 칸·스위치 / 오른쪽 위 송폼, 아래 필기(남은 높이를 다 씀) — 스크롤 없이 한 화면
@@ -504,11 +574,13 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
   .now.compact .secname{font-size:clamp(28px, calc(100dvh * .045), 44px)}
   .quick{gap:6px;justify-content:stretch}
   .quick .bigtogs{grid-template-columns:1fr;gap:6px}
-  .quick .bigtog{min-height:54px;padding:8px 11px;border-radius:13px;gap:2px}
+  .quick .bigtog{min-height:50px;padding:7px 11px;border-radius:13px;gap:2px}
   .quick .bigtog b{font-size:14.5px}
   .quick .bigtog small{font-size:11px}
-  .quick .quick-s{grid-template-columns:1fr;gap:5px}
-  .quick .tog{padding:6px 10px;font-size:12px;border-radius:11px;gap:6px}
+  /* 좁은 칸: 클릭·깜빡임 스위치는 짧은 이름으로 한 줄에 */
+  .quick .quick-s{grid-template-columns:1fr 1fr;gap:5px}
+  .quick .tog .lf{display:none} .quick .tog .ls{display:inline}
+  .quick .tog{padding:6px 8px;font-size:12px;border-radius:11px;gap:4px}
   .quick .tog i{width:28px;height:16px}
   .quick .tog i::after{width:10px;height:10px}
   .quick .tog[aria-pressed="true"] i::after{transform:translateX(12px)}
@@ -532,6 +604,8 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
     grid-template-areas:"bar bar" "hud form" "hud now" "hud tog" "ink ink"}
   .hud{--dial:clamp(140px, 20vw, 200px);overflow:visible}
   .quick .bigtogs, .quick .quick-s{grid-template-columns:1fr 1fr}
+  .quick .tog .lf{display:inline} .quick .tog .ls{display:none}
+  .quick .tog{padding:6px 10px;gap:6px}
   #formPanel .formline{max-height:none}
 }
 @media (max-width:640px){ .brand span{display:none} .tabs{margin-inline:0} }
@@ -547,7 +621,7 @@ input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
 <body>
 
 <header class="top">
-  <div class="brand"><svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="8" fill="var(--accent)"/><path d="M9 20.5 12.3 6h1.4L17 20.5z" fill="none" stroke="var(--accent-ink)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 16.5 18.5 9" stroke="var(--accent-ink)" stroke-width="1.6" stroke-linecap="round"/><circle cx="17.4" cy="10.5" r="1.6" fill="var(--accent-ink)"/></svg><span title="Drummertronome · 드러머를 위한 메트로놈">드러머트로놈</span></div>
+  <div class="brand"><svg viewBox="0 0 26 26" aria-hidden="true"><defs><linearGradient id="brandGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7C95FF"/><stop offset="1" stop-color="#3F5CF0"/></linearGradient></defs><rect width="26" height="26" rx="8" fill="var(--accent)"/><path d="M9 20.5 12.3 6h1.4L17 20.5z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 16.5 18.5 9" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="17.4" cy="10.5" r="1.6" fill="#fff"/></svg><span title="Drummertronome · 드러머를 위한 메트로놈">드러머트로놈</span></div>
   <nav class="tabs" role="tablist" aria-label="화면">
     <button role="tab" id="tab-play" data-view="play" aria-selected="true">연주</button>
     <button role="tab" id="tab-lists" data-view="lists" aria-selected="false">재생목록</button>
@@ -1325,9 +1399,17 @@ function buildClicks(){
   BUF.classic = {
     acc: synth(t=> tk(t) + .7*(Math.sin(2*Math.PI*2093*t)+.45*Math.sin(2*Math.PI*5230*t))*Math.exp(-t/0.22)*(t<0.002?t/0.002:1), .5),
     beat: synth(tk, .06), sub: synth(t=>tkSoft(t)*.8, .045) };
-  // digital: square-wave watch beep
-  const sq = (f,d) => synth(t=> (Math.sin(2*Math.PI*f*t)>=0?1:-1) * (t<d?1:Math.exp(-(t-d)/0.004)) * (t<0.001?t/0.001:1), d+.02);
-  BUF.digital = { acc: sq(2000,.045), beat: sq(1000,.035), sub: sq(1000,.018) };
+  // digital: Tempo 앱 계열의 깔끔한 전자 클릭.
+  //  - 예전 네모파는 고음 배음이 몰려 귀가 따갑고 다른 소리보다 10dB 가까이 컸다 → 사인파에 약한 배음만 더한다
+  //  - 시작 몇 ms 동안 음이 살짝 내려앉으며 '틱' 하는 윤곽을 만들고, 짧게 사라져 귀에 남지 않게 한다
+  //  - 첫 박은 다섯 도 위(A6), 나머지 박은 D6. 크기는 체감 크기(LUFS)로 맞췄다: 박 약 −17, 첫 박 +2dB, 분할 −3dB(기본 볼륨까지 합치면 약 +4dB / −5dB)
+  const DIG_LVL = {acc:.98, beat:1, sub:.93};
+  const dig = (f, hold, dec, dur, lvl) => { let ph = 0; const sr = ctx.sampleRate;
+    const b = synth(t=>{ ph += 2*Math.PI*f*(1 + 0.06*Math.exp(-t/0.0015))/sr;
+      const e = t<hold ? 1 : Math.exp(-(t-hold)/dec);
+      return (Math.sin(ph) + 0.12*Math.sin(2*ph) + 0.03*Math.sin(3*ph)) * e; }, dur);
+    const d = b.getChannelData(0); for(let i=0;i<d.length;i++) d[i] *= lvl; return b; };
+  BUF.digital = { acc: dig(1760, .008, .024, .1, DIG_LVL.acc), beat: dig(1175, .007, .02, .09, DIG_LVL.beat), sub: dig(1175, .004, .012, .05, DIG_LVL.sub) };
   BUF.chime = makeTone([[988,1],[1480,.6]],.12,.35,0);
 }
 // voice clips ship as raw 16-bit PCM: no codec padding, sample-exact on every device
@@ -1337,11 +1419,13 @@ function pcmToBuf(v){
   for(let i=0;i<n;i++){ let x = bin.charCodeAt(2*i) | (bin.charCodeAt(2*i+1)<<8); if(x>=32768) x-=65536; ch[i]=x/32768; }
   b.__pc = v.pc || 0; return b;
 }
-// 안내 음성: 남성 voices-m2.js(VOICE_M), 여성 voices-f2.js(VOICE_F). 고른 목소리만 내려받는다.
-// 단어마다 느리게·보통·빠르게 세 녹음이 있고(음 높이는 같음), 연주할 때 템포에 맞는 것을 고른다.
+// 안내 음성: 남성 voices-m5.js(VOICE_M), 여성 voices-f4.js(VOICE_F). 고른 목소리만 내려받는다.
+// 단어마다 느린 녹음부터 빠른 녹음까지 여러 개가 있고(모두 음 높이가 같음), 연주할 때 템포에 맞는 것을 고른다.
+//  - 앞 세 개: 느리게·보통·빠르게. 그 뒤: 빠르게 녹음을 음 높이 그대로 1.3배(파트·큐), 1.2~1.95배(카운트)로 줄인 것
+//  - pc: 박에 맞출 지점(첫 모음이 올라오는 곳, 초). 단어 앞에 붙은 숨소리·잡음은 잘라 냈다
 const VOICE_SRC = {
-  m: {file:'voices-m2.js', get:()=> typeof VOICE_M!=='undefined' ? VOICE_M : null},
-  f: {file:'voices-f2.js', get:()=> typeof VOICE_F!=='undefined' ? VOICE_F : null},
+  m: {file:'voices-m5.js', get:()=> typeof VOICE_M!=='undefined' ? VOICE_M : null},
+  f: {file:'voices-f4.js', get:()=> typeof VOICE_F!=='undefined' ? VOICE_F : null},
 };
 const voiceLoad = {}, VBUF = {};
 const voiceGender = () => settings().voiceGender==='f' ? 'f' : 'm';
@@ -1384,21 +1468,50 @@ function joinBuf(a, b){
   const gap = Math.round(a.sampleRate*0.04), out = ctx.createBuffer(1, a.length+gap+b.length, a.sampleRate), d = out.getChannelData(0);
   d.set(a.getChannelData(0), 0); d.set(b.getChannelData(0), a.length+gap); out.__pc = a.__pc; return out;
 }
-// 템포에 맞춰 말 빠르기를 고른다: 주어진 시간(avail)의 fill 비율 안에 들어가는 가장 느린 녹음.
-// 셋 다 길면 가장 빠른 녹음을 조금 빨리 튼다(최대 maxRate배, 예전과 같은 방식).
-function sayFit(vs, t, avail, fill, fit, maxRate){
+// 템포에 맞춰 말 빠르기를 고른다. 재생 속도는 늘 1배다.
+// (재생 속도를 올리면 음 높이도 같이 올라가서, 빠른 곡에서 목소리가 바뀌어 들렸다)
+// 주어진 시간(avail)의 fill 비율 안에 들어가는 가장 느린 녹음을 고른다. 다 길면 가장 빠른 녹음을 쓰고, avail이 끝날 때 살짝 줄여 끈다.
+const minTake = () => settings().voicePace==='fast' ? 2 : 0;   // 「늘 빠르게」: 빠르게 녹음부터
+function pickTake(vs, avail, fill){
+  let i = Math.min(minTake(), vs.length-1);
+  if(avail) while(i < vs.length-1 && vs[i].duration > avail*fill) i++;
+  return i;
+}
+function sayFit(vs, t, avail, fill){
   if(!vs || !vs.length) return false;
-  let b = vs[vs.length-1];
-  if(avail && settings().voicePace!=='fast') b = vs.find(x=>x.duration <= avail*fill) || b;
-  playVoice(b, t, avail ? clamp(b.duration/(avail*fit), 1, maxRate) : 1);
+  const b = vs[pickTake(vs, avail, fill)];
+  playVoice(b, t, avail && b.duration - b.__pc > avail ? t + avail*0.95 : 0);
   return true;
 }
-// start a voice clip so its perceived beat point (vowel onset) lands on t
-function playVoice(buf, t, rate){
-  if(!buf) return; rate = rate || 1;
+// 카운트(One~Four)는 한 곡 안에서 늘 같은 녹음으로 센다: 곡 기본 템포의 한 박에 One~Four가 모두 들어가는 가장 느린 녹음.
+// 단어마다 따로 고르면 짧은 One·Two와 긴 Three·Four가 서로 다른 녹음으로 나와 3·4에서 목소리가 바뀌어 들린다.
+function countTake(beat){
+  const sets = [1,2,3,4].map(n=>vbuf('c'+n)).filter(Boolean);
+  if(!sets.length) return 0;
+  const memo = sets[0].__ct || (sets[0].__ct = {}), key = Math.round(beat*1000)+'|'+minTake();
+  if(memo[key]!=null) return memo[key];
+  const len = Math.min(...sets.map(s=>s.length));
+  let i = Math.min(minTake(), len-1);
+  while(i < len-1 && sets.some(s=>s[i].duration > beat*0.9)) i++;
+  return memo[key] = i;
+}
+// n번째 박 카운트. 녹음은 곡 기본 템포로 고른다(리타르로 느려져도 같은 목소리)
+function sayCount(n, t, beatDur, song){
+  const vs = vbuf('c'+n); if(!vs || !vs.length) return;
+  const b = vs[Math.min(countTake(60/bpmOf(song)), vs.length-1)];
+  playVoice(b, t, b.duration - b.__pc > beatDur*0.95 ? t + beatDur*0.95 : 0);
+}
+// 녹음의 박 지점(pc, 첫 모음이 올라오는 곳)이 정확히 t에 오도록 그만큼 앞당겨 튼다. cutAt이 있으면 그때까지 줄여 끈다
+function playVoice(buf, t, cutAt){
+  if(!buf) return;
   const off = (settings().voiceOffset||0)/1000;
-  const src = playBuf(buf, t - (buf.__pc||0)/rate + off, 1, voiceBus, rate);
-  if(src) VLIVE.add(src);
+  const src = playBuf(buf, t - (buf.__pc||0) + off, 1, voiceBus);
+  if(!src) return;
+  VLIVE.add(src);
+  if(cutAt){
+    const e = Math.max(cutAt + off, ctx.currentTime + 0.05);
+    try{ src.__g.gain.setValueAtTime(1, e-0.03); src.__g.gain.linearRampToValueAtTime(0, e); src.stop(e+0.01); }catch(err){}
+  }
 }
 function b64ToBuf(b64){ const bin=atob(b64), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u.buffer; }
 function decode(ab){ return new Promise((res)=>{ try{ const p = ctx.decodeAudioData(ab, res, ()=>res(null)); if(p && p.then) p.then(res,()=>res(null)); }catch(e){ res(null); } }); }
@@ -1425,7 +1538,7 @@ const live = new Set();
 function playBuf(buf, t, gain, bus, rate){
   if(!buf) return;
   const src = ctx.createBufferSource(); src.buffer = buf; if(rate && rate!==1) src.playbackRate.value = rate;
-  const g = ctx.createGain(); g.gain.value = gain; src.connect(g); g.connect(bus);
+  const g = ctx.createGain(); g.gain.value = gain; src.connect(g); g.connect(bus); src.__g = g;
   src.start(Math.max(t, ctx.currentTime)); live.add(src);
   src.onended = ()=>{ live.delete(src); VLIVE.delete(src); try{ src.disconnect(); g.disconnect(); }catch(e){} };
   return src;
@@ -1468,12 +1581,12 @@ async function previewVoice(){
   if(P.playing) return;
   ensureAudio();
   const song = curSong(), bpm = (song && song.bpm) || 90;   // 지금 곡 템포로 두 박 안에 읽어 본다
-  sayFit(vbuf('chorus'), ctx.currentTime+0.05, 2*60/bpm, 0.7, 0.95, 1.3);
+  sayFit(vbuf('chorus'), ctx.currentTime+0.05, 2*60/bpm, 0.7);
 }
 function cue(sec, t, avail){
   const st = settings(); if(st.guide==='off' || !sec) return;
   if(st.guide==='ko'){ if(!speak(sec.say, t, 'ko-KR')) playBuf(BUF.chime, t, .7, voiceBus); return; }
-  if(sayFit(sec.voice ? vbuf(sec.voice) : null, t, avail, 0.7, 0.95, 1.3)) return;
+  if(sayFit(sec.voice ? vbuf(sec.voice) : null, t, avail, 0.7)) return;
   if(!speak(sec.say, t, /[가-힣]/.test(sec.say)?'ko-KR':'en-US')) playBuf(BUF.chime, t, .7, voiceBus);
 }
 
@@ -1616,16 +1729,16 @@ function scheduleStep(song, t){
     let n = null;
     if(P.countTotal===2 && P.countBar===0 && ts.beats===4){ n = P.b===0 ? 1 : P.b===2 ? 2 : null; }
     else n = P.b+1;
-    if(n) sayFit(vbuf('c'+n), t, beatDur, 0.8, 0.92, 1.35);
+    if(n) sayCount(n, t, beatDur, song);
   }
   if(rit && isBeat && st.guide!=='off'){
-    sayFit(vbuf('c'+(P.b+1)), t, beatDur, 0.8, 0.92, 1.35);
+    sayCount(P.b+1, t, beatDur, song);
   }
   // 송폼을 다시 켰는데 앞 파트가 없거나 짧을 때(두 마디 안내만 따로): 첫 마디 끝에 파트 이름, 둘째 마디는 1 2 3 4
   if(P.mode==='free' && P.resume && !inCount && isBeat && st.guide!=='off'){
     const nb = nameBeat(ts);
     if(P.resume.left===2 && P.b===nb && P.secs[P.resume.idx]) cue(P.secs[P.resume.idx], t, Math.max(1, ts.beats-nb)*beatDur);
-    if(P.resume.left===1 && st.guideCount) sayFit(vbuf('c'+(P.b+1)), t, beatDur, 0.8, 0.92, 1.35);
+    if(P.resume.left===1 && st.guideCount) sayCount(P.b+1, t, beatDur, song);
   }
   // part guide: name at the end of the bar two bars before the change, then "1 2 3 4" over the last bar
   if(!rit && !inCount && P.mode==='form' && isBeat && st.guide!=='off'){
@@ -1652,7 +1765,7 @@ function scheduleStep(song, t){
       }
       if(left===1 && has && st.guideCount){
         if(P.b===0 && P.cuedNext===null){ P.cuedNext = nx; }
-        if(P.b >= cueSlot && !ritHere) sayFit(vbuf('c'+(P.b+1)), t, beatDur, 0.8, 0.92, 1.35);
+        if(P.b >= cueSlot && !ritHere) sayCount(P.b+1, t, beatDur, song);
       } else if(left===1 && has && !st.guideCount && P.b===0 && P.cuedNext===null){
         // one-bar part: no room two bars ahead, so say the name now
         P.cuedNext = nx; if(!hereCue) cue(nxt, t, ts.beats*beatDur);
@@ -1997,8 +2110,8 @@ function setVoice(st, on, lang){
 }
 function renderQuick(){
   const st = settings();
-  const items = [['click','클릭 소리'],['flash','화면 깜빡임']];
-  $('#quick').innerHTML = items.map(([k,l])=>`<button class="tog" data-tog="${k}" aria-pressed="${!!st[k]}">${l}<i></i></button>`).join('');
+  const items = [['click','클릭 소리','클릭'],['flash','화면 깜빡임','깜빡임']];
+  $('#quick').innerHTML = items.map(([k,l,sh])=>`<button class="tog" data-tog="${k}" aria-pressed="${!!st[k]}" title="${l}"><span class="lf">${l}</span><span class="ls">${sh}</span><i></i></button>`).join('');
   const von = voiceOn(st), vb = $('#voiceBtn');
   vb.setAttribute('aria-pressed', String(von));
   vb.innerHTML = `<span class="bt"><b>가이드 음성</b><em>${von?'ON':'OFF'}</em></span><small>${von ? '카운트인·파트 안내' : '음성 없이 클릭만'}</small>`;

@@ -15,8 +15,8 @@
     "productivity"
   ],
   "orientation": "any",
-  "background_color": "#0A0C12",
-  "theme_color": "#0A0C12",
+  "background_color": "#080C1E",
+  "theme_color": "#080C1E",
   "icons": [
     {
       "src": "icon-192.png",
